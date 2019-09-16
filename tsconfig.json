@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "sourceMap": true,
+        "noImplicitAny": false,
+        "esModuleInterop": true,
+        "downlevelIteration": true,
+        "module": "commonjs",
+        "lib": ["es2017", "es7", "es6", "dom"],
+        "target": "es5",
+        "declaration": true
+    },
+    "exclude": ["node_modules", "dist"]
+}
