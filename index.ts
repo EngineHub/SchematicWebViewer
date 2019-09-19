@@ -15,8 +15,9 @@ import {
     AmbientLight,
     Material
 } from 'three';
-import { decode, Tag, Short } from 'nbt-ts';
+import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
+import { loadSchematic, Schematic } from './src/schematic';
 
 const needsColorBlocks = new Set([
     'birch_leaves',
@@ -222,81 +223,24 @@ function parseNbt(nbt: string): Tag {
     return { [data.name]: [data.value] };
 }
 
-function buildSceneFromSchematic(
-    tag: Tag,
-    scene: Scene
-): [number, number, number] {
-    const blocks = (tag as any).get('BlockData') as Buffer;
-    const width = ((tag as any).get('Width') as Short).value;
-    const height = ((tag as any).get('Height') as Short).value;
-    const length = ((tag as any).get('Length') as Short).value;
-
-    const palette = new Map<number, string>();
-    for (let [key, value] of (tag as any).get('Palette').entries()) {
-        // sanitize the block name
-        let colonIndex = key.indexOf(':');
-        if (colonIndex !== -1) {
-            key = key.substring(colonIndex + 1);
-        }
-
-        let bracketIndex = key.indexOf('[');
-        if (bracketIndex !== -1) {
-            key = key.substring(0, bracketIndex);
-        }
-
-        palette.set(value.value, key);
-    }
-
-    const blockMap = new Map<string, string>();
-    let index = 0;
-    let i = 0;
-    while (i < blocks.length) {
-        let value = 0;
-        let varintLength = 0;
-
-        while (true) {
-            value |= (blocks[i] & 127) << (varintLength++ * 7);
-            if (varintLength > 5) {
-                throw new Error('VarInt too big');
-            }
-            if ((blocks[i] & 128) != 128) {
-                i++;
-                break;
-            }
-            i++;
-        }
-
-        let y = Math.floor(index / (width * length));
-        let z = Math.floor((index % (width * length)) / width);
-        let x = (index % (width * length)) % width;
-
-        index++;
-
-        const blockName = palette.get(value);
-        if (blockName === 'air') {
-            continue;
-        }
-
-        blockMap.set(`${x},${y},${z}`, blockName);
-    }
-
-    for (const [pos, blockName] of blockMap.entries()) {
-        const [xStr, yStr, zStr] = pos.split(',');
-        const [x, y, z] = [parseInt(xStr), parseInt(yStr), parseInt(zStr)];
-
-        const meshFunc = blockNameMap[blockName] || basicBlockGen(blockName);
+function buildSceneFromSchematic(schematic: Schematic, scene: Scene): void {
+    for (const pos of schematic) {
+        const { x, y, z } = pos;
+        const block = schematic.getBlock(pos);
+        const meshFunc = blockNameMap[block.type] || basicBlockGen(block.type);
         const mesh = meshFunc((xOffset, yOffset, zOffset) => {
-            return !blockMap.has(
-                `${x + xOffset},${y + yOffset},${z + zOffset}`
-            );
+            const offBlock = schematic.getBlock({
+                x: x + xOffset,
+                y: y + yOffset,
+                z: z + zOffset
+            });
+            return !offBlock || offBlock.type === 'air';
         });
-        mesh.position.x = -width / 2 + x + 0.5;
-        mesh.position.y = -height / 2 + y + 0.5;
+        mesh.position.x = -schematic.width / 2 + x + 0.5;
+        mesh.position.y = -schematic.height / 2 + y + 0.5;
         mesh.position.z = -length / 2 + z + 0.5;
         scene.add(mesh);
     }
-
-    return [width, height, length];
 }
 
 export interface SchematicHandles {
@@ -339,10 +283,13 @@ export function renderSchematic(
     };
 
     const rootTag = parseNbt(schematic);
-    const [worldWidth, worldHeight, worldLength] = buildSceneFromSchematic(
-        (rootTag as any).Schematic[0],
-        scene
-    );
+    const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
+    buildSceneFromSchematic(loadedSchematic, scene);
+    const {
+        width: worldWidth,
+        height: worldHeight,
+        length: worldLength
+    } = loadedSchematic;
     const cameraOffset = Math.max(worldWidth, worldLength) / 2 + 1;
     const camera = new OrthographicCamera(
         -cameraOffset,
