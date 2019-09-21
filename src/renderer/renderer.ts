@@ -17,7 +17,8 @@ import {
 } from 'three';
 import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
-import { loadSchematic, Schematic } from './src/schematic';
+import { loadSchematic, Schematic } from '../schematic';
+import { SchematicHandles } from '.';
 
 const needsColorBlocks = new Set([
     'birch_leaves',
@@ -227,6 +228,10 @@ function buildSceneFromSchematic(schematic: Schematic, scene: Scene): void {
     for (const pos of schematic) {
         const { x, y, z } = pos;
         const block = schematic.getBlock(pos);
+        if (!block) {
+            console.log(`Oof ${x} ${y} ${z} ${JSON.stringify(schematic)}`);
+            continue;
+        }
         const meshFunc = blockNameMap[block.type] || basicBlockGen(block.type);
         const mesh = meshFunc((xOffset, yOffset, zOffset) => {
             const offBlock = schematic.getBlock({
@@ -238,14 +243,9 @@ function buildSceneFromSchematic(schematic: Schematic, scene: Scene): void {
         });
         mesh.position.x = -schematic.width / 2 + x + 0.5;
         mesh.position.y = -schematic.height / 2 + y + 0.5;
-        mesh.position.z = -length / 2 + z + 0.5;
+        mesh.position.z = -schematic.length / 2 + z + 0.5;
         scene.add(mesh);
     }
-}
-
-export interface SchematicHandles {
-    resize(size: number): void;
-    destroy(): void;
 }
 
 export function renderSchematic(

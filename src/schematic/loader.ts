@@ -1,6 +1,6 @@
 import { Schematic } from './types';
 import { Tag, Short } from 'nbt-ts/lib';
-import { Block } from '../types';
+import { Block } from './types';
 
 export function loadSchematic(tag: Tag): Schematic {
     const blocks = (tag as any).get('BlockData') as Buffer;
@@ -50,10 +50,6 @@ export function loadSchematic(tag: Tag): Schematic {
         index++;
 
         const block = palette.get(value);
-        if (block.type === 'air') {
-            continue;
-        }
-
         schematic.setBlock({ x, y, z }, block);
     }
 
