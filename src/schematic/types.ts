@@ -1,4 +1,3 @@
-import { Block, BlockVector3 } from '../types';
 import { make3DArray } from '../util/array';
 
 export class Schematic implements Iterable<BlockVector3> {
@@ -47,7 +46,7 @@ export class Schematic implements Iterable<BlockVector3> {
 
         return {
             next: function() {
-                const answer = { nextX, nextY, nextZ };
+                const answer = { x: nextX, y: nextY, z: nextZ };
                 if (++nextX > this.width) {
                     nextX = 0;
                     if (++nextZ > this.length) {
@@ -61,4 +60,14 @@ export class Schematic implements Iterable<BlockVector3> {
             }.bind(this)
         };
     }
+}
+
+export interface BlockVector3 {
+    x: number;
+    y: number;
+    z: number;
+}
+
+export interface Block {
+    type: string;
 }
