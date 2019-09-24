@@ -46,17 +46,20 @@ export class Schematic implements Iterable<BlockVector3> {
 
         return {
             next: function() {
+                if (nextX === -1) {
+                    return { done: true };
+                }
                 const answer = { x: nextX, y: nextY, z: nextZ };
-                if (++nextX > this.width) {
+                if (++nextX > this.width - 1) {
                     nextX = 0;
-                    if (++nextZ > this.length) {
+                    if (++nextZ > this.length - 1) {
                         nextZ = 0;
-                        if (++nextY > this.height) {
+                        if (++nextY > this.height - 1) {
                             nextX = -1;
                         }
                     }
                 }
-                return { value: answer, done: nextX === -1 };
+                return { value: answer };
             }.bind(this)
         };
     }

@@ -19,6 +19,7 @@ import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
 import { loadSchematic, Schematic } from '../schematic';
 import { SchematicHandles } from '.';
+import { SchematicRenderOptions } from './types';
 
 const needsColorBlocks = new Set([
     'birch_leaves',
@@ -32,6 +33,7 @@ const needsColorBlocks = new Set([
 const materialCache = new Map<string, Material>();
 const loader = new TextureLoader();
 const blockSideGeometry = new PlaneGeometry(1, 1, 1, 1);
+let renderOptions: SchematicRenderOptions;
 
 type IsAdjacentEmpty = (x: number, y: number, z: number) => boolean;
 
@@ -40,7 +42,7 @@ function getTextureMaterial(tex: string): Material {
     if (cached) return cached;
 
     const needsColor = needsColorBlocks.has(tex);
-    const texture = loader.load(`/static/textures/${tex}.png`);
+    const texture = loader.load(`${renderOptions.texturePrefix || ''}/textures/${tex}.png`);
     texture.magFilter = NearestFilter;
     //texture.minFilter = NearestFilter;
     const mat = new MeshPhongMaterial({
@@ -229,7 +231,10 @@ function buildSceneFromSchematic(schematic: Schematic, scene: Scene): void {
         const { x, y, z } = pos;
         const block = schematic.getBlock(pos);
         if (!block) {
-            console.log(`Oof ${x} ${y} ${z} ${JSON.stringify(schematic)}`);
+            console.log(`Missing block ${x} ${y} ${z} ${JSON.stringify(schematic)}`);
+            continue;
+        }
+        if (block.type === 'air') {
             continue;
         }
         const meshFunc = blockNameMap[block.type] || basicBlockGen(block.type);
@@ -251,8 +256,9 @@ function buildSceneFromSchematic(schematic: Schematic, scene: Scene): void {
 export function renderSchematic(
     canvas: HTMLCanvasElement,
     schematic: string,
-    size: number
+    options: SchematicRenderOptions
 ): SchematicHandles {
+    renderOptions = options;
     const scene = new Scene();
     let hasDestroyed = false;
     let isDragging = false;
@@ -370,7 +376,7 @@ export function renderSchematic(
 
     const renderer = new WebGLRenderer({ antialias: true, canvas });
     renderer.setClearColor(new Color(0xffffff));
-    renderer.setSize(size, size);
+    renderer.setSize(options.size, options.size);
 
     canvas.addEventListener('mousedown', mousedownCallback);
     document.body.addEventListener('mousemove', mousemoveCallback);

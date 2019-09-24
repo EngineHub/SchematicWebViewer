@@ -1,6 +1,5 @@
-import { Schematic } from './types';
+import { Schematic, Block } from './types';
 import { Tag, Short } from 'nbt-ts/lib';
-import { Block } from './types';
 
 export function loadSchematic(tag: Tag): Schematic {
     const blocks = (tag as any).get('BlockData') as Buffer;
