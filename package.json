@@ -1,13 +1,13 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/index.js",
     "files": [
         "dist/"
     ],
     "scripts": {
-        "prepublish": "tsc",
+        "prepublish": "rm -rf dist && tsc",
         "build": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
         "postinstall": "patch-package",
