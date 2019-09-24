@@ -198,8 +198,6 @@ index ddac4d1..d45c94c 100644
  const tag_1 = require("./tag");
 -if (!Buffer.prototype.readBigInt64BE)
 -    require("../buffer-bigint.shim");
--__export(require("./tag"));
-+_export(require("./tag"));
  __export(require("./snbt"));
  /**
   * Decode a nbt tag from buffer.
