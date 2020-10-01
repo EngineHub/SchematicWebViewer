@@ -11,7 +11,8 @@ import {
     Scene,
     Mesh,
     Texture,
-    Vector2, LinearFilter, NearestMipMapLinearFilter, NearestMipMapNearestFilter, NearestMipmapNearestFilter
+    Vector2,
+    NearestMipMapLinearFilter
 } from 'three';
 
 export default (renderOptions: SchematicRenderOptions) => {
@@ -37,7 +38,9 @@ export default (renderOptions: SchematicRenderOptions) => {
                 `${renderOptions.texturePrefix || ''}/textures/${tex}.png`,
                 texture => {
                     resolve(texture);
-                }, () => {}, (e) => reject(e)
+                },
+                () => {},
+                e => reject(e)
             );
         });
     }
@@ -54,7 +57,10 @@ export default (renderOptions: SchematicRenderOptions) => {
 
             const bleedAllowance = 0.01;
 
-            texture.offset = new Vector2(ranges.startU + bleedAllowance, ranges.endV + bleedAllowance);
+            texture.offset = new Vector2(
+                ranges.startU + bleedAllowance,
+                ranges.endV + bleedAllowance
+            );
             texture.repeat = new Vector2(
                 ranges.endU - ranges.startU - bleedAllowance,
                 ranges.startV - ranges.endV - bleedAllowance

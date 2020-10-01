@@ -108,7 +108,7 @@ export async function renderSchematic(
         camera.zoom = Math.max(camera.zoom - delta, 0.1);
         camera.updateProjectionMatrix();
         e.preventDefault();
-    }
+    };
 
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);

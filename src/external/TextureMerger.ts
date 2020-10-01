@@ -4,7 +4,9 @@ import {
     CompressedTexture,
     CanvasTexture,
     ClampToEdgeWrapping,
-    NearestFilter, LinearFilter, NearestMipMapLinearFilter
+    NearestFilter,
+    LinearFilter,
+    NearestMipMapLinearFilter
 } from 'three';
 
 var TextureMergerRectangle = function (x, y, width, height) {
