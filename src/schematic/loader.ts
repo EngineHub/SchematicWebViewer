@@ -23,7 +23,12 @@ export function loadSchematic(tag: Tag): Schematic {
         palette.set(value.value, { type: key });
     }
 
-    const schematic = new Schematic(width, height, length);
+    const schematic = new Schematic(
+        width,
+        height,
+        length,
+        [...palette.values()].map(key => key.type)
+    );
     let index = 0;
     let i = 0;
     while (i < blocks.length) {

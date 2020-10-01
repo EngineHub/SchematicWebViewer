@@ -5,11 +5,18 @@ export class Schematic implements Iterable<BlockVector3> {
     height: number;
     length: number;
     blocks: Block[][][];
+    blockTypes: string[];
 
-    constructor(width: number, height: number, length: number) {
+    constructor(
+        width: number,
+        height: number,
+        length: number,
+        blockTypes: string[]
+    ) {
         this.width = width;
         this.height = height;
         this.length = length;
+        this.blockTypes = blockTypes;
 
         this.blocks = make3DArray(width, height, length);
     }
@@ -45,7 +52,7 @@ export class Schematic implements Iterable<BlockVector3> {
         let nextZ = 0;
 
         return {
-            next: function() {
+            next: function () {
                 if (nextX === -1) {
                     return { done: true };
                 }
