@@ -309,9 +309,9 @@ export default (renderOptions: SchematicRenderOptions) => {
 
             mergedTextures = new TextureMerger(loadedTextures);
 
-            // Object.keys(loadedTextures).forEach(tex => {
-            //     loadedTextures[tex].dispose();
-            // });
+            Object.keys(loadedTextures).forEach(tex => {
+                loadedTextures[tex].dispose();
+            });
         },
         getModel: async (block: string) => {
             return await (blockNameMap[block]?.modelType ?? basicBlockGen)(

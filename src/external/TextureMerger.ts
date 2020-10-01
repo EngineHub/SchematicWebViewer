@@ -388,7 +388,6 @@ TextureMerger.prototype.rescale = function (canvas, scale) {
         resizedCanvas.width,
         resizedCanvas.height
     );
-    //this.debugCanvas(resizedCanvas);
     return resizedCanvas;
 };
 
