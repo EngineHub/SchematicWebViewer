@@ -168,34 +168,36 @@ export async function renderSchematic(
         transparent: true
     });
 
-    // generate a 3d grid
-    for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
-        for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
-            const barMesh = new Mesh(gridGeom, gridMaterial);
-            barMesh.scale.y = worldLength * 2;
-            barMesh.rotation.x = Math.PI / 2;
-            barMesh.position.x = x;
-            barMesh.position.y = y;
-            // scene.add(barMesh);
+    if (options.renderBars ?? true) {
+        // generate a 3d grid
+        for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
+            for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
+                const barMesh = new Mesh(gridGeom, gridMaterial);
+                barMesh.scale.y = worldLength * 2;
+                barMesh.rotation.x = Math.PI / 2;
+                barMesh.position.x = x;
+                barMesh.position.y = y;
+                scene.add(barMesh);
+            }
         }
-    }
-    for (let z = -worldLength / 2; z <= worldLength / 2; z++) {
-        for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
-            const barMesh = new Mesh(gridGeom, gridMaterial);
-            barMesh.scale.y = worldWidth * 2;
-            barMesh.rotation.z = Math.PI / 2;
-            barMesh.position.z = z;
-            barMesh.position.y = y;
-            // scene.add(barMesh);
-        }
-    }
-    for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
         for (let z = -worldLength / 2; z <= worldLength / 2; z++) {
-            const barMesh = new Mesh(gridGeom, gridMaterial);
-            barMesh.scale.y = worldHeight * 2;
-            barMesh.position.x = x;
-            barMesh.position.z = z;
-            // scene.add(barMesh);
+            for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
+                const barMesh = new Mesh(gridGeom, gridMaterial);
+                barMesh.scale.y = worldWidth * 2;
+                barMesh.rotation.z = Math.PI / 2;
+                barMesh.position.z = z;
+                barMesh.position.y = y;
+                scene.add(barMesh);
+            }
+        }
+        for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
+            for (let z = -worldLength / 2; z <= worldLength / 2; z++) {
+                const barMesh = new Mesh(gridGeom, gridMaterial);
+                barMesh.scale.y = worldHeight * 2;
+                barMesh.position.x = x;
+                barMesh.position.z = z;
+                scene.add(barMesh);
+            }
         }
     }
 

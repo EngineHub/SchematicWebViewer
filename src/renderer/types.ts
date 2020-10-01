@@ -6,4 +6,5 @@ export interface SchematicHandles {
 export interface SchematicRenderOptions {
     size: number;
     texturePrefix?: string;
+    renderBars?: boolean;
 }
