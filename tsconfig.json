@@ -9,7 +9,7 @@
         "module": "commonjs",
         "lib": ["es2017", "es7", "es6", "dom"],
         "target": "es5",
-        "allowJs": false,
+        "allowJs": true,
         "declaration": true
     },
     "exclude": ["node_modules", "dist"]

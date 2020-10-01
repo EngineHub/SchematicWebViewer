@@ -11,7 +11,7 @@ import {
     Scene,
     Mesh,
     Texture,
-    Vector2
+    Vector2, LinearFilter, NearestMipMapLinearFilter, NearestMipMapNearestFilter, NearestMipmapNearestFilter
 } from 'three';
 
 export default (renderOptions: SchematicRenderOptions) => {
@@ -31,15 +31,13 @@ export default (renderOptions: SchematicRenderOptions) => {
 
     type IsAdjacentEmpty = (x: number, y: number, z: number) => boolean;
 
-    async function loadTexture(tex: string): Promise<Texture> {
+    function loadTexture(tex: string): Promise<Texture> {
         return new Promise((resolve, reject) => {
-            const texture = loader.load(
+            loader.load(
                 `${renderOptions.texturePrefix || ''}/textures/${tex}.png`,
                 texture => {
-                    texture.magFilter = NearestFilter;
-                    //texture.minFilter = NearestFilter;
                     resolve(texture);
-                }
+                }, () => {}, (e) => reject(e)
             );
         });
     }
@@ -53,11 +51,18 @@ export default (renderOptions: SchematicRenderOptions) => {
         if (mergedTextures.textureOffsets[tex]) {
             texture = mergedTextures.mergedTexture.clone();
             const ranges = mergedTextures.ranges[tex];
-            texture.offset = new Vector2(ranges.startU, ranges.endV);
+
+            const bleedAllowance = 0.01;
+
+            texture.offset = new Vector2(ranges.startU + bleedAllowance, ranges.endV + bleedAllowance);
             texture.repeat = new Vector2(
-                ranges.endU - ranges.startU,
-                ranges.startV - ranges.endV
+                ranges.endU - ranges.startU - bleedAllowance,
+                ranges.startV - ranges.endV - bleedAllowance
             );
+            texture.minFilter = NearestMipMapLinearFilter;
+            texture.magFilter = NearestFilter;
+            texture.generateMipmaps = true;
+            texture.needsUpdate = true;
         } else {
             texture = await loadTexture(tex);
         }
@@ -298,9 +303,9 @@ export default (renderOptions: SchematicRenderOptions) => {
 
             mergedTextures = new TextureMerger(loadedTextures);
 
-            Object.keys(loadedTextures).forEach(tex => {
-                loadedTextures[tex].dispose();
-            });
+            // Object.keys(loadedTextures).forEach(tex => {
+            //     loadedTextures[tex].dispose();
+            // });
         },
         getModel: async (block: string) => {
             return await (blockNameMap[block]?.modelType ?? basicBlockGen)(

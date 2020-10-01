@@ -102,6 +102,13 @@ export async function renderSchematic(
     const mouseupCallback = () => {
         isDragging = false;
     };
+    const mouseWheelCallback = (e: WheelEvent) => {
+        const delta = e.deltaY / 1000;
+
+        camera.zoom = Math.max(camera.zoom - delta, 0.1);
+        camera.updateProjectionMatrix();
+        console.log(camera.zoom);
+    }
 
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
@@ -169,7 +176,7 @@ export async function renderSchematic(
             barMesh.rotation.x = Math.PI / 2;
             barMesh.position.x = x;
             barMesh.position.y = y;
-            scene.add(barMesh);
+            // scene.add(barMesh);
         }
     }
     for (let z = -worldLength / 2; z <= worldLength / 2; z++) {
@@ -179,7 +186,7 @@ export async function renderSchematic(
             barMesh.rotation.z = Math.PI / 2;
             barMesh.position.z = z;
             barMesh.position.y = y;
-            scene.add(barMesh);
+            // scene.add(barMesh);
         }
     }
     for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
@@ -188,15 +195,16 @@ export async function renderSchematic(
             barMesh.scale.y = worldHeight * 2;
             barMesh.position.x = x;
             barMesh.position.z = z;
-            scene.add(barMesh);
+            // scene.add(barMesh);
         }
     }
 
-    const renderer = new WebGLRenderer({ antialias: true, canvas });
+    const renderer = new WebGLRenderer({ antialias: false, canvas });
     renderer.setClearColor(new Color(0xffffff));
     renderer.setSize(options.size, options.size);
 
     canvas.addEventListener('mousedown', mousedownCallback);
+    canvas.addEventListener('wheel', mouseWheelCallback);
     document.body.addEventListener('mousemove', mousemoveCallback);
     document.body.addEventListener('mouseup', mouseupCallback);
 
@@ -224,6 +232,7 @@ export async function renderSchematic(
         destroy() {
             hasDestroyed = true;
             canvas.removeEventListener('mousedown', mousedownCallback);
+            canvas.removeEventListener('wheel', mouseWheelCallback);
             document.body.removeEventListener('mousemove', mousemoveCallback);
             document.body.removeEventListener('mouseup', mouseupCallback);
         }
