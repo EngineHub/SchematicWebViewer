@@ -107,7 +107,7 @@ export async function renderSchematic(
 
         camera.zoom = Math.max(camera.zoom - delta, 0.1);
         camera.updateProjectionMatrix();
-        console.log(camera.zoom);
+        e.preventDefault();
     }
 
     const rootTag = parseNbt(schematic);
