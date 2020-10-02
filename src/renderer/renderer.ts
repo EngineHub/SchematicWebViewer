@@ -105,7 +105,7 @@ export async function renderSchematic(
     const mouseWheelCallback = (e: WheelEvent) => {
         const delta = e.deltaY / 1000;
 
-        camera.zoom = Math.max(camera.zoom - delta, 0.1);
+        camera.zoom = Math.max(camera.zoom - delta, 0.01);
         camera.updateProjectionMatrix();
         e.preventDefault();
     };
@@ -134,18 +134,20 @@ export async function renderSchematic(
     camera.position.y = (cameraOffset / 2) * 5;
     camera.lookAt(0, 0, 0);
 
-    const arrowMaterial = new MeshBasicMaterial({ color: new Color(0x000000) });
-    const arrowGeometry = new CylinderGeometry(
-        cameraOffset / 4,
-        cameraOffset / 4,
-        cameraOffset / 200,
-        3,
-        1,
-        false
-    );
-    const arrowMesh = new Mesh(arrowGeometry, arrowMaterial);
-    arrowMesh.position.z = cameraOffset - 0.5;
-    scene.add(arrowMesh);
+    if (options.renderArrow ?? true) {
+        const arrowMaterial = new MeshBasicMaterial({ color: new Color(0x000000) });
+        const arrowGeometry = new CylinderGeometry(
+            cameraOffset / 4,
+            cameraOffset / 4,
+            cameraOffset / 200,
+            3,
+            1,
+            false
+        );
+        const arrowMesh = new Mesh(arrowGeometry, arrowMaterial);
+        arrowMesh.position.z = cameraOffset - 0.5;
+        scene.add(arrowMesh);
+    }
 
     const worldLight = new DirectionalLight(0xffffff, 1);
     worldLight.position.x = cameraOffset;
@@ -162,13 +164,14 @@ export async function renderSchematic(
         1,
         false
     );
-    const gridMaterial = new MeshBasicMaterial({
-        color: new Color(0x000000),
-        opacity: 0.2,
-        transparent: true
-    });
-
+    
     if (options.renderBars ?? true) {
+        const gridMaterial = new MeshBasicMaterial({
+            color: new Color(0x000000),
+            opacity: 0.2,
+            transparent: true
+        });
+
         // generate a 3d grid
         for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
             for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
@@ -212,7 +215,9 @@ export async function renderSchematic(
 
     let lastTime = performance.now();
     function render() {
-        if (hasDestroyed) return;
+        if (hasDestroyed) {
+            return;
+        }
 
         requestAnimationFrame(render);
 
