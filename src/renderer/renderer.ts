@@ -11,7 +11,7 @@ import {
 } from 'three';
 import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
-import { loadSchematic, Schematic } from '../schematic';
+import { loadSchematic, Schematic } from '@enginehub/schematicjs';
 import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
 import TextureManager from './textureManager';
@@ -135,7 +135,9 @@ export async function renderSchematic(
     camera.lookAt(0, 0, 0);
 
     if (options.renderArrow ?? true) {
-        const arrowMaterial = new MeshBasicMaterial({ color: new Color(0x000000) });
+        const arrowMaterial = new MeshBasicMaterial({
+            color: new Color(0x000000)
+        });
         const arrowGeometry = new CylinderGeometry(
             cameraOffset / 4,
             cameraOffset / 4,
@@ -156,16 +158,16 @@ export async function renderSchematic(
     scene.add(worldLight);
     scene.add(new AmbientLight(new Color(), 0.5));
 
-    const gridGeom = new CylinderGeometry(
-        cameraOffset / 400,
-        cameraOffset / 400,
-        1,
-        3,
-        1,
-        false
-    );
-    
     if (options.renderBars ?? true) {
+        const gridGeom = new CylinderGeometry(
+            cameraOffset / 400,
+            cameraOffset / 400,
+            1,
+            3,
+            1,
+            false
+        );
+
         const gridMaterial = new MeshBasicMaterial({
             color: new Color(0x000000),
             opacity: 0.2,
