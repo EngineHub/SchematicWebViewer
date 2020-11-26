@@ -24,6 +24,7 @@
     },
     "homepage": "https://github.com/EngineHub/SchematicWebViewer#readme",
     "dependencies": {
+        "@enginehub/schematicjs": "^0.0.1",
         "gzip-js": "^0.3.2",
         "nbt-ts": "^1.3.3",
         "patch-package": "^6.2.2",
