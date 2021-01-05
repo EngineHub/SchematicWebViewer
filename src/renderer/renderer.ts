@@ -14,7 +14,8 @@ import { unzip } from 'gzip-js';
 import { loadSchematic, Schematic } from '@enginehub/schematicjs';
 import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
-import TextureManager from './textureManager';
+import { getModelLoader } from './model/loader';
+import { getResourceLoader } from '../resource/resourceLoader';
 
 function parseNbt(nbt: string): Tag {
     const buff = Buffer.from(nbt, 'base64');
@@ -44,7 +45,8 @@ export async function renderSchematic(
     let dragStartX = 0;
     let dragStartY = 0;
 
-    const textureManager = TextureManager(options);
+    const resourceLoader = await getResourceLoader(options.jarUrl);
+    const modelLoader = await getModelLoader(resourceLoader);
 
     const buildSceneFromSchematic = async (
         schematic: Schematic,
@@ -62,7 +64,7 @@ export async function renderSchematic(
             if (INVISIBLE_BLOCKS.has(block.type)) {
                 continue;
             }
-            const meshFunc = await textureManager.getModel(block.type);
+            const meshFunc = await modelLoader.getModel(block);
             const mesh = await meshFunc(
                 (xOffset: number, yOffset: number, zOffset: number) => {
                     const offBlock = schematic.getBlock({
@@ -112,9 +114,6 @@ export async function renderSchematic(
 
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
-    await textureManager.setup(
-        loadedSchematic.blockTypes.filter(block => !INVISIBLE_BLOCKS.has(block))
-    );
     await buildSceneFromSchematic(loadedSchematic, scene);
     const {
         width: worldWidth,
@@ -206,7 +205,7 @@ export async function renderSchematic(
         }
     }
 
-    const renderer = new WebGLRenderer({ antialias: false, canvas });
+    const renderer = new WebGLRenderer({ antialias: true, canvas });
     renderer.setClearColor(new Color(0xffffff));
     renderer.setSize(options.size, options.size);
 

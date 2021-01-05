@@ -9,16 +9,18 @@ window.addEventListener('load', () => {
         COMPLEX_SCHEM,
         {
             size: 500,
-            texturePrefix: 'https://worldedit.golf/static'
+            jarUrl: 'https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar'
         }
     );
 
     renderSchematic(
         document.querySelector('#second'),
-        COMPLEX_SCHEM,
+        SIMPLE_SCHEM,
         {
             size: 250,
-            texturePrefix: 'https://worldedit.golf/static'
+            jarUrl: 'https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar',
+            renderArrow: false,
+            renderBars: false
         }
     );
 });
