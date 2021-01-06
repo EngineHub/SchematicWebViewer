@@ -232,10 +232,9 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                     )
                 );
 
-                for (const model of models) {
-                    return async (f: IsAdjacentEmpty) => {
-                        const scene = new Scene();
-
+                return async (f: IsAdjacentEmpty) => {
+                    const scene = new Scene();
+                    for (const model of models) {
                         const resolveTexture = (ref: string) => {
                             while (ref.startsWith('#')) {
                                 ref = model.textures[ref.substring(1)];
@@ -342,9 +341,9 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 }
                             }
                         }
-                        return scene;
-                    };
-                }
+                    }
+                    return scene;
+                };
             } else {
                 console.log(blockState);
                 return async (f: IsAdjacentEmpty) => {
