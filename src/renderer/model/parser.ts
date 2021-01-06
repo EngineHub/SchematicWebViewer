@@ -1,3 +1,4 @@
+import deepmerge from 'deepmerge';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { BlockModel, BlockStateDefinition } from './types';
 
@@ -11,13 +12,24 @@ export async function getBlockStateDefinition(
 }
 
 export async function getModel(
-    model: string,
+    modelRef: string,
     resourceLoader: ResourceLoader
 ): Promise<BlockModel> {
-    if (model.startsWith('minecraft:')) {
-        model = model.substring('minecraft:'.length);
+    if (modelRef.startsWith('minecraft:')) {
+        modelRef = modelRef.substring('minecraft:'.length);
     }
-    return JSON.parse(
-        await resourceLoader.getResourceString(`models/${model}.json`)
+    let model = JSON.parse(
+        await resourceLoader.getResourceString(`models/${modelRef}.json`)
     ) as BlockModel;
+
+    if (model.parent) {
+        let parent = await getModel(model.parent, resourceLoader);
+        if (model['elements'] && parent['elements']) {
+            delete parent['elements'];
+        }
+        model = deepmerge(parent, model);
+        delete model.parent;
+    }
+
+    return model;
 }
