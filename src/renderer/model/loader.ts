@@ -9,17 +9,129 @@ import {
     Mesh,
     Texture,
     NearestFilter,
-    Color
+    Color,
+    NearestMipmapLinearFilter,
+    Vector2,
+    Vector3
 } from 'three';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { getBlockStateDefinition, getModel } from './parser';
+import { Faces, Vector } from './types';
 
 type IsAdjacentEmpty = (x: number, y: number, z: number) => boolean;
+
+interface LocationMatrix {
+    position: {
+        x?: number;
+        y?: number;
+        z?: number;
+    };
+    rotation: {
+        x?: number;
+        y?: number;
+        z?: number;
+    };
+}
+
+function faceToLocation(face: Faces): LocationMatrix {
+    switch (face) {
+        case 'up':
+            return {
+                rotation: {
+                    x: -Math.PI / 2
+                },
+                position: {
+                    y: 0.5
+                }
+            };
+        case 'down':
+            return {
+                rotation: {
+                    x: Math.PI / 2
+                },
+                position: {
+                    y: -0.5
+                }
+            };
+        case 'north':
+            return {
+                rotation: {
+                    y: Math.PI
+                },
+                position: {
+                    z: -0.5
+                }
+            };
+        case 'south':
+            return {
+                rotation: {},
+                position: {
+                    z: 0.5
+                }
+            };
+        case 'east':
+            return {
+                rotation: {
+                    y: Math.PI / 2
+                },
+                position: {
+                    x: 0.5
+                }
+            };
+        case 'west':
+            return {
+                rotation: {
+                    y: -Math.PI / 2
+                },
+                position: {
+                    x: -0.5
+                }
+            };
+    }
+}
+
+function faceToFacingVector(face: Faces): Vector {
+    switch (face) {
+        case 'up':
+            return [0, 1, 0];
+        case 'down':
+            return [0, -1, 0];
+        case 'north':
+            return [0, 0, -1];
+        case 'south':
+            return [0, 0, 1];
+        case 'east':
+            return [1, 0, 0];
+        case 'west':
+            return [-1, 0, 0];
+        default:
+            return [0, 0, 0];
+    }
+}
+
+function faceToTextureSize(
+    face: Faces,
+    from: Vector,
+    to: Vector
+): [number, number] {
+    switch (face) {
+        case 'up':
+        case 'down':
+            return [to[0] - from[0], to[2] - from[2]];
+        case 'north':
+        case 'south':
+            return [to[0] - from[0], to[1] - from[1]];
+        case 'east':
+        case 'west':
+            return [to[2] - from[2], to[1] - from[1]];
+        default:
+            return [1, 1];
+    }
+}
 
 export async function getModelLoader(resourceLoader: ResourceLoader) {
     const materialCache = new Map<string, Material>();
     const loader = new TextureLoader();
-    const blockSideGeometry = new PlaneGeometry(1, 1, 1, 1);
 
     async function loadTexture(tex: string): Promise<Texture | undefined> {
         if (tex.startsWith('minecraft:')) {
@@ -55,14 +167,17 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
         const texture = await loadTexture(tex);
         texture.magFilter = NearestFilter;
+        texture.minFilter = NearestMipmapLinearFilter;
         const mat = new MeshPhongMaterial({
             map: texture,
             color: tintindex !== undefined ? new Color(0x91bd59) : new Color(),
             shininess: 0
         });
+        mat.transparent = true;
         materialCache.set(tex, mat);
         return mat;
     }
+
     return {
         getModel: async (block: Block) => {
             const blockState = await getBlockStateDefinition(
@@ -73,9 +188,21 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
             if (blockState.variants?.['']) {
                 variant = blockState.variants[''];
+            } else if (blockState.variants) {
+                const variantName = Object.keys(block.properties)
+                    .sort()
+                    .reduce((a, b) => {
+                        a.push(`${b}=${block.properties[b]}`);
+                        return a;
+                    }, [])
+                    .join(',');
+                console.log(variantName);
+                variant = blockState.variants[variantName];
             } else {
-                variant =
-                    blockState.variants[Object.keys(blockState.variants)[0]];
+                return async (f: IsAdjacentEmpty) => {
+                    const scene = new Scene();
+                    return scene;
+                };
             }
 
             if (Array.isArray(variant)) {
@@ -111,105 +238,116 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                 };
 
                 if (model.elements) {
-                    for (const element of model.elements) {
-                        return async (f: IsAdjacentEmpty) => {
-                            const scene = new Scene();
+                    return async (f: IsAdjacentEmpty) => {
+                        const scene = new Scene();
 
-                            if (element.faces.up && f(0, 1, 0)) {
-                                const topMesh = new Mesh(
-                                    blockSideGeometry,
+                        if (block.type === 'snow') {
+                            console.log(model);
+                        }
+
+                        for (const element of model.elements) {
+                            // Normalise to/from to threejs coords.
+                            element.from = [
+                                element.from[0] / 16 - 0.5,
+                                element.from[1] / 16 - 0.5,
+                                element.from[2] / 16 - 0.5
+                            ];
+                            element.to = [
+                                element.to[0] / 16 - 0.5,
+                                element.to[1] / 16 - 0.5,
+                                element.to[2] / 16 - 0.5
+                            ];
+
+                            for (const face of Object.keys(element.faces)) {
+                                const faceData = element.faces[face];
+
+                                if (
+                                    faceData.cullface &&
+                                    !f(...faceToFacingVector(faceData.cullface))
+                                ) {
+                                    continue;
+                                }
+
+                                const textureSize = faceToTextureSize(
+                                    face as Faces,
+                                    element.from,
+                                    element.to
+                                );
+
+                                let elementGeometry = new PlaneGeometry(
+                                    ...textureSize,
+                                    1,
+                                    1
+                                );
+
+                                const rot = faceToLocation(face as Faces);
+
+                                if (element.rotation) {
+                                    elementGeometry.translate(
+                                        element.rotation.origin[0] / 16 - 0.5,
+                                        element.rotation.origin[1] / 16 - 0.5,
+                                        element.rotation.origin[2] / 16 - 0.5
+                                    );
+                                }
+
+                                const mesh = new Mesh(
+                                    elementGeometry,
                                     await getTextureMaterial(
-                                        resolveTexture(
-                                            element.faces.up.texture
-                                        ),
-                                        element.faces.up.tintindex
+                                        resolveTexture(faceData.texture),
+                                        faceData.tintindex
                                     )
                                 );
-                                topMesh.rotation.x = -Math.PI / 2;
-                                topMesh.position.y = 0.5;
-                                scene.add(topMesh);
-                            }
 
-                            if (element.faces.down && f(0, -1, 0)) {
-                                const bottomMesh = new Mesh(
-                                    blockSideGeometry,
-                                    await getTextureMaterial(
-                                        resolveTexture(
-                                            element.faces.down.texture
-                                        ),
-                                        element.faces.down.tintindex
-                                    )
+                                if (rot.position.x) {
+                                    mesh.position.x =
+                                        rot.position.x *
+                                        (element.to[0] - element.from[0]);
+                                }
+
+                                if (rot.position.z) {
+                                    mesh.position.z =
+                                        rot.position.z *
+                                        (element.to[2] - element.from[2]);
+                                }
+
+                                if (rot.position.y) {
+                                    mesh.position.y =
+                                        rot.position.y *
+                                        (element.to[1] - element.from[1]);
+                                }
+
+                                mesh.rotation.set(
+                                    rot.rotation.x ?? mesh.rotation.x,
+                                    rot.rotation.y ?? mesh.rotation.y,
+                                    rot.rotation.z ?? mesh.rotation.z
                                 );
-                                bottomMesh.rotation.x = Math.PI / 2;
-                                bottomMesh.position.y = -0.5;
-                                scene.add(bottomMesh);
-                            }
 
-                            if (element.faces.west && f(-1, 0, 0)) {
-                                const leftMesh = new Mesh(
-                                    blockSideGeometry,
-                                    await getTextureMaterial(
-                                        resolveTexture(
-                                            element.faces.west.texture
-                                        ),
-                                        element.faces.west.tintindex
-                                    )
-                                );
-                                leftMesh.rotation.y = -Math.PI / 2;
-                                leftMesh.position.x = -0.5;
-                                scene.add(leftMesh);
-                            }
+                                if (element.rotation) {
+                                    mesh.rotation[element.rotation.axis] +=
+                                        element.rotation.angle;
+                                }
 
-                            if (element.faces.east && f(1, 0, 0)) {
-                                const rightMesh = new Mesh(
-                                    blockSideGeometry,
-                                    await getTextureMaterial(
-                                        resolveTexture(
-                                            element.faces.east.texture
-                                        ),
-                                        element.faces.east.tintindex
-                                    )
-                                );
-                                rightMesh.rotation.y = Math.PI / 2;
-                                rightMesh.position.x = 0.5;
-                                scene.add(rightMesh);
-                            }
+                                if (face === 'east' && block.type === 'snow') {
+                                    console.log(mesh.position);
+                                }
 
-                            if (element.faces.north && f(0, 0, -1)) {
-                                const backMesh = new Mesh(
-                                    blockSideGeometry,
-                                    await getTextureMaterial(
-                                        resolveTexture(
-                                            element.faces.north.texture
-                                        ),
-                                        element.faces.north.tintindex
-                                    )
-                                );
-                                backMesh.rotation.y = Math.PI;
-                                backMesh.position.z = -0.5;
-                                scene.add(backMesh);
-                            }
+                                mesh.position.y -=
+                                    (1 - (element.to[1] - element.from[1])) / 2;
 
-                            if (element.faces.south && f(0, 0, 1)) {
-                                const frontMesh = new Mesh(
-                                    blockSideGeometry,
-                                    await getTextureMaterial(
-                                        resolveTexture(
-                                            element.faces.south.texture
-                                        ),
-                                        element.faces.south.tintindex
-                                    )
-                                );
-                                frontMesh.position.z = 0.5;
-                                scene.add(frontMesh);
-                            }
+                                mesh.matrixWorldNeedsUpdate = true;
 
-                            return scene;
-                        };
-                    }
+                                scene.add(mesh);
+                            }
+                        }
+
+                        return scene;
+                    };
                 }
             } else {
                 console.log(blockState);
+                return async f => {
+                    return new Scene();
+                };
             }
         }
     };

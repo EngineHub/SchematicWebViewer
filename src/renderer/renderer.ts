@@ -31,7 +31,26 @@ const INVISIBLE_BLOCKS = new Set([
     'air',
     'cave_air',
     'void_air',
-    'structure_void'
+    'structure_void',
+    'barrier'
+]);
+
+// TODO Somehow automate this
+const TRANSPARENT_BLOCKS = new Set([
+    ...INVISIBLE_BLOCKS,
+    'oak_leaves',
+    'birch_leaves',
+    'dandelion',
+    'grass',
+    'snow',
+    'wheat',
+    'cornflower',
+    'tall_grass',
+    'water',
+    'lava',
+    'glass_pane',
+    'grass_path',
+    'farmland'
 ]);
 
 export async function renderSchematic(
@@ -65,6 +84,9 @@ export async function renderSchematic(
                 continue;
             }
             const meshFunc = await modelLoader.getModel(block);
+            if (!meshFunc) {
+                continue;
+            }
             const mesh = await meshFunc(
                 (xOffset: number, yOffset: number, zOffset: number) => {
                     const offBlock = schematic.getBlock({
@@ -72,7 +94,7 @@ export async function renderSchematic(
                         y: y + yOffset,
                         z: z + zOffset
                     });
-                    return !offBlock || INVISIBLE_BLOCKS.has(offBlock.type);
+                    return !offBlock || TRANSPARENT_BLOCKS.has(offBlock.type);
                 }
             );
             mesh.position.x = -schematic.width / 2 + x + 0.5;

@@ -28,8 +28,8 @@ export interface BlockStateDefinition {
     }[];
 }
 
-type Vector = [number, number, number];
-type Faces = 'down' | 'up' | 'north' | 'south' | 'west' | 'east';
+export type Vector = [number, number, number];
+export type Faces = 'down' | 'up' | 'north' | 'south' | 'west' | 'east';
 
 export interface BlockModel {
     parent?: string;
