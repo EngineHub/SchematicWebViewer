@@ -6,7 +6,7 @@ const fs = require('fs/promises');
 async function doTheFilter() {
     const data = JSON.parse(await fs.readFile('blocks.json'));
 
-    const blocks = data.filter(bl => bl.material.fullCube === false || bl.material.opaque === false).map(bl => bl.id.replace('minecraft:', ''));
+    const blocks = data.filter(bl => bl.material.fullCube === false || bl.material.opaque === false || bl.id.includes('_stair')).map(bl => bl.id.replace('minecraft:', ''));
     await fs.writeFile('output.json', JSON.stringify(blocks));
 }
 

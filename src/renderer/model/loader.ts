@@ -1,91 +1,38 @@
 import { Block } from '@enginehub/schematicjs';
+import deepmerge from 'deepmerge';
 import {
     Material,
     TextureLoader,
-    PlaneGeometry,
     MeshPhongMaterial,
     Scene,
     Mesh,
     Texture,
     NearestFilter,
     Color,
-    NearestMipmapLinearFilter
+    NearestMipmapLinearFilter,
+    MathUtils,
+    BoxGeometry,
+    MeshBasicMaterial,
+    Group
 } from 'three';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { getBlockStateDefinition, getModel } from './parser';
-import { BlockStateDefinitionVariant, Faces, Vector } from './types';
+import {
+    BlockStateDefinitionVariant,
+    BlockStateModelHolder,
+    Faces,
+    POSSIBLE_FACES,
+    Vector
+} from './types';
 
 type IsAdjacentEmpty = (x: number, y: number, z: number) => boolean;
 
-interface LocationMatrix {
-    position: {
-        x?: number;
-        y?: number;
-        z?: number;
-    };
-    rotation: {
-        x?: number;
-        y?: number;
-        z?: number;
-    };
-}
+const BLANK_MATERIAL = new MeshBasicMaterial({ transparent: true, opacity: 0 });
 
-function faceToLocation(face: Faces): LocationMatrix {
-    switch (face) {
-        case 'up':
-            return {
-                rotation: {
-                    x: -Math.PI / 2
-                },
-                position: {
-                    y: 0.5
-                }
-            };
-        case 'down':
-            return {
-                rotation: {
-                    x: Math.PI / 2
-                },
-                position: {
-                    y: -0.5
-                }
-            };
-        case 'north':
-            return {
-                rotation: {
-                    y: Math.PI
-                },
-                position: {
-                    z: -0.5
-                }
-            };
-        case 'south':
-            return {
-                rotation: {},
-                position: {
-                    z: 0.5
-                }
-            };
-        case 'east':
-            return {
-                rotation: {
-                    y: Math.PI / 2
-                },
-                position: {
-                    x: 0.5
-                }
-            };
-        case 'west':
-            return {
-                rotation: {
-                    y: -Math.PI / 2
-                },
-                position: {
-                    x: -0.5
-                }
-            };
-    }
-}
+const TINT_COLOR = new Color(0x91bd59);
+const WATER_COLOR = new Color(0x2439d6);
+const LAVA_COLOR = new Color(0xe85917);
+const BLANK_COLOR = new Color();
 
 function faceToFacingVector(face: Faces): Vector {
     switch (face) {
@@ -103,26 +50,6 @@ function faceToFacingVector(face: Faces): Vector {
             return [-1, 0, 0];
         default:
             return [0, 0, 0];
-    }
-}
-
-function faceToTextureSize(
-    face: Faces,
-    from: Vector,
-    to: Vector
-): [number, number] {
-    switch (face) {
-        case 'up':
-        case 'down':
-            return [to[0] - from[0], to[2] - from[2]];
-        case 'north':
-        case 'south':
-            return [to[0] - from[0], to[1] - from[1]];
-        case 'east':
-        case 'west':
-            return [to[2] - from[2], to[1] - from[1]];
-        default:
-            return [1, 1];
     }
 }
 
@@ -159,23 +86,55 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
     async function getTextureMaterial(
         tex: string,
+        rotation?: number,
+        uv?: [number, number, number, number],
         tintindex?: number
     ): Promise<Material> {
-        const cached = materialCache.get(tex);
-        if (cached) {
-            return cached;
+        const canCache =
+            (rotation === undefined || rotation === 0) &&
+            (uv === undefined || uv === [0, 0, 16, 16]) &&
+            tintindex === undefined;
+        if (canCache) {
+            const cached = materialCache.get(tex);
+            if (cached) {
+                return cached;
+            }
         }
 
         const texture = await loadTexture(tex);
+        if (rotation) {
+            texture.rotation = rotation * MathUtils.DEG2RAD;
+        }
+        if (uv) {
+            texture.offset.x = uv[0] / 16;
+            texture.offset.y = uv[1] / 16;
+            texture.repeat.x = (uv[2] - uv[0]) / 16;
+            texture.repeat.y = (uv[3] - uv[1]) / 16;
+        }
         texture.magFilter = NearestFilter;
         texture.minFilter = NearestMipmapLinearFilter;
+
+        let color: Color;
+        if (tintindex !== undefined) {
+            color = TINT_COLOR;
+        } else if (tex.startsWith('block/water_')) {
+            color = WATER_COLOR;
+        } else if (tex.startsWith('block/lava_')) {
+            color = LAVA_COLOR;
+        } else {
+            color = BLANK_COLOR;
+        }
+
         const mat = new MeshPhongMaterial({
             map: texture,
-            color: tintindex !== undefined ? new Color(0x91bd59) : new Color(),
+            color,
             shininess: 0
         });
+
         mat.transparent = true;
-        materialCache.set(tex, mat);
+        if (canCache) {
+            materialCache.set(tex, mat);
+        }
         return mat;
     }
 
@@ -186,7 +145,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                 resourceLoader
             );
 
-            const modelRefs: string[] = [];
+            const modelRefs: BlockStateModelHolder[] = [];
 
             if (blockState.variants?.['']) {
                 let variant = blockState.variants[''];
@@ -196,7 +155,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                         variant[Math.floor(Math.random() & variant.length)];
                 }
 
-                modelRefs.push(variant.model);
+                modelRefs.push(variant);
             } else if (blockState.variants) {
                 const validVariantProperties = new Set(
                     Object.keys(blockState.variants)[0]
@@ -220,7 +179,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                         variant[Math.floor(Math.random() & variant.length)];
                 }
 
-                modelRefs.push(variant.model);
+                modelRefs.push(variant);
             } else if (blockState.multipart) {
                 const doesFilterPass = (
                     filter: BlockStateDefinitionVariant<string>
@@ -249,7 +208,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             }
                         } else {
                             if (!doesFilterPass(part.when)) {
-                                break;
+                                continue;
                             }
                         }
                     }
@@ -261,21 +220,18 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             models[Math.floor(Math.random() & models.length)];
                     }
 
-                    modelRefs.push(models.model);
+                    modelRefs.push(models);
                 }
             }
 
             if (modelRefs.length > 0) {
-                const models = await Promise.all(
-                    modelRefs.map(
-                        async modelRef =>
-                            await getModel(modelRef, resourceLoader)
-                    )
-                );
-
                 return async (f: IsAdjacentEmpty) => {
                     const scene = new Scene();
-                    for (const model of models) {
+                    for (const modelHolder of modelRefs) {
+                        const model = await getModel(
+                            modelHolder.model,
+                            resourceLoader
+                        );
                         const resolveTexture = (ref: string) => {
                             while (ref.startsWith('#')) {
                                 ref = model.textures[ref.substring(1)];
@@ -283,6 +239,22 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
                             return ref;
                         };
+
+                        if (block.type === 'water' || block.type === 'lava') {
+                            // These blocks are not rendered via models, so handle specially.
+                            model.textures['all'] = model.textures.particle;
+                            const temporaryModel = deepmerge(
+                                await getModel(
+                                    'block/cube_all',
+                                    resourceLoader
+                                ),
+                                model
+                            );
+                            model.textures = temporaryModel.textures;
+                            model.elements = temporaryModel.elements;
+                        }
+
+                        const meshGroup = new Group();
 
                         if (model.elements) {
                             for (const element of model.elements) {
@@ -300,86 +272,105 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                     element.to[2] - element.from[2]
                                 ];
 
-                                for (const face of Object.keys(element.faces)) {
+                                const materials = [];
+
+                                let anyRendered = false;
+                                for (const face of POSSIBLE_FACES) {
+                                    if (!element.faces[face]) {
+                                        materials.push(BLANK_MATERIAL);
+                                        continue;
+                                    }
                                     const faceData = element.faces[face];
 
                                     if (
-                                        faceData.cullface &&
-                                        !f(
+                                        f(
                                             ...faceToFacingVector(
-                                                faceData.cullface
+                                                faceData.cullface ?? face
                                             )
                                         )
                                     ) {
-                                        continue;
+                                        // Culling doesn't work too well with rotations. So we just cull full cubes.
+                                        anyRendered = true;
                                     }
 
-                                    const textureSize = faceToTextureSize(
-                                        face as Faces,
-                                        element.from,
-                                        element.to
-                                    );
-
-                                    let elementGeometry = new PlaneGeometry(
-                                        ...textureSize,
-                                        1,
-                                        1
-                                    );
-
-                                    const rot = faceToLocation(face as Faces);
-
-                                    if (element.rotation) {
-                                        elementGeometry.translate(
-                                            normalize(
-                                                element.rotation.origin[0]
-                                            ),
-                                            normalize(
-                                                element.rotation.origin[1]
-                                            ),
-                                            normalize(
-                                                element.rotation.origin[2]
-                                            )
-                                        );
-                                    }
-
-                                    const mesh = new Mesh(
-                                        elementGeometry,
+                                    materials.push(
                                         await getTextureMaterial(
                                             resolveTexture(faceData.texture),
+                                            faceData.rotation,
+                                            faceData.uv,
                                             faceData.tintindex
                                         )
                                     );
+                                }
 
-                                    if (rot.position.x) {
-                                        mesh.position.x =
-                                            rot.position.x * elementSize[0];
-                                    }
+                                if (!anyRendered) {
+                                    continue;
+                                }
 
-                                    if (rot.position.y) {
-                                        mesh.position.y =
-                                            rot.position.y * elementSize[1];
-                                    }
+                                const geometry = new BoxGeometry(
+                                    ...elementSize,
+                                    1,
+                                    1,
+                                    1
+                                );
 
-                                    if (rot.position.z) {
-                                        mesh.position.z =
-                                            rot.position.z * elementSize[2];
-                                    }
+                                geometry.translate(
+                                    element.from[0] + elementSize[0] / 2,
+                                    element.from[1] + elementSize[1] / 2,
+                                    element.from[2] + elementSize[2] / 2
+                                );
 
-                                    mesh.rotation.set(
-                                        rot.rotation.x ?? mesh.rotation.x,
-                                        rot.rotation.y ?? mesh.rotation.y,
-                                        rot.rotation.z ?? mesh.rotation.z
+                                if (modelHolder.x) {
+                                    geometry.rotateX(
+                                        MathUtils.DEG2RAD * modelHolder.x
+                                    );
+                                }
+                                if (modelHolder.y) {
+                                    geometry.rotateY(
+                                        MathUtils.DEG2RAD * modelHolder.y
+                                    );
+                                }
+
+                                if (element.rotation) {
+                                    geometry.translate(
+                                        normalize(element.rotation.origin[0]),
+                                        normalize(element.rotation.origin[1]),
+                                        normalize(element.rotation.origin[2])
                                     );
 
-                                    if (element.rotation) {
-                                        mesh.rotation[element.rotation.axis] +=
-                                            element.rotation.angle;
+                                    switch (element.rotation.axis) {
+                                        case 'y':
+                                            geometry.rotateY(
+                                                element.rotation.angle *
+                                                    MathUtils.DEG2RAD
+                                            );
+                                            break;
+                                        case 'x':
+                                            geometry.rotateX(
+                                                element.rotation.angle *
+                                                    MathUtils.DEG2RAD
+                                            );
+                                            break;
+                                        case 'z':
+                                            geometry.rotateZ(
+                                                element.rotation.angle *
+                                                    MathUtils.DEG2RAD
+                                            );
+                                            break;
                                     }
 
-                                    mesh.position.y -= (1 - elementSize[1]) / 2;
-
-                                    scene.add(mesh);
+                                    geometry.translate(
+                                        -normalize(element.rotation.origin[0]),
+                                        -normalize(element.rotation.origin[1]),
+                                        -normalize(element.rotation.origin[2])
+                                    );
                                 }
+
+                                meshGroup.add(new Mesh(geometry, materials));
+                            }
+
+                            if (meshGroup.children.length > 0) {
+                                scene.add(meshGroup);
                             }
                         }
                     }
@@ -387,7 +378,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                 };
             } else {
                 console.log(blockState);
-                return async (f: IsAdjacentEmpty) => {
+                return async () => {
                     return new Scene();
                 };
             }

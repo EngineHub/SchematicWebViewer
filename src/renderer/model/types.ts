@@ -1,17 +1,15 @@
+export interface BlockStateModelHolder {
+    model: string;
+    x?: number;
+    y?: number;
+    uvlock?: boolean;
+}
+
 type BlockStateDefinitionModel =
-    | {
-          model: string;
-          x?: number;
-          y?: number;
-          uvlock?: boolean;
-      }
-    | {
-          model: string;
-          x?: number;
-          y?: number;
-          uvlock?: boolean;
+    | BlockStateModelHolder
+    | (BlockStateModelHolder & {
           weight?: number;
-      }[];
+      })[];
 
 // This is necessary to work around a restriction that prevents index types from having non-conforming sibling types
 export type BlockStateDefinitionVariant<T> = { [variant: string]: T };
@@ -29,7 +27,9 @@ export interface BlockStateDefinition {
 }
 
 export type Vector = [number, number, number];
-export type Faces = 'down' | 'up' | 'north' | 'south' | 'west' | 'east';
+
+export const POSSIBLE_FACES = ['east', 'west', 'up', 'down', 'south', 'north'] as const;
+export type Faces = typeof POSSIBLE_FACES[number];
 
 export interface BlockModel {
     parent?: string;

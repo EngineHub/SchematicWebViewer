@@ -160,12 +160,12 @@ export async function renderSchematic(
         scene.add(arrowMesh);
     }
 
-    const worldLight = new DirectionalLight(0xffffff, 1);
-    worldLight.position.x = cameraOffset;
-    worldLight.position.z = cameraOffset;
-    worldLight.position.y = cameraOffset;
+    const worldLight = new DirectionalLight(0xffffff, 0.8);
+    worldLight.position.x = 0;
+    worldLight.position.z = 0;
+    worldLight.position.y = worldHeight / 2 + 1;
     scene.add(worldLight);
-    scene.add(new AmbientLight(new Color(), 0.5));
+    scene.add(new AmbientLight(new Color(), 0.6));
 
     if (options.renderBars ?? true) {
         const gridGeom = new CylinderGeometry(

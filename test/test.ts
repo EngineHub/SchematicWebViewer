@@ -7,7 +7,7 @@ const SIMPLE_SCHEM = 'H4sIAAAAAAAAAF1OXUvDQBCc3GHTnIr/wZ8h2Aex4INFQbF+IGVNN8lieo
 window.addEventListener('load', () => {
     renderSchematic(
         document.querySelector('#main'),
-        VILLAGE_SCHEM,
+       VILLAGE_SCHEM, 
         {
             size: 500,
             renderArrow: false,
