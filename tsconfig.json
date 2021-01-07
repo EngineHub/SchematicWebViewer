@@ -6,9 +6,10 @@
         "noImplicitAny": false,
         "esModuleInterop": true,
         "downlevelIteration": true,
+        "resolveJsonModule": true,
         "module": "commonjs",
         "lib": ["es2017", "es7", "es6", "dom"],
-        "target": "es5",
+        "target": "es6",
         "allowJs": true,
         "declaration": true
     },
