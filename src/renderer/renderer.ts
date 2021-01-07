@@ -14,7 +14,9 @@ import { unzip } from 'gzip-js';
 import { loadSchematic, Schematic } from '@enginehub/schematicjs';
 import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
-import TextureManager from './textureManager';
+import { getModelLoader } from './model/loader';
+import { getResourceLoader } from '../resource/resourceLoader';
+import NonOccludingBlocks from './nonOccluding.json';
 
 function parseNbt(nbt: string): Tag {
     const buff = Buffer.from(nbt, 'base64');
@@ -30,7 +32,13 @@ const INVISIBLE_BLOCKS = new Set([
     'air',
     'cave_air',
     'void_air',
-    'structure_void'
+    'structure_void',
+    'barrier'
+]);
+
+const TRANSPARENT_BLOCKS = new Set([
+    ...INVISIBLE_BLOCKS,
+    ...NonOccludingBlocks
 ]);
 
 export async function renderSchematic(
@@ -44,7 +52,8 @@ export async function renderSchematic(
     let dragStartX = 0;
     let dragStartY = 0;
 
-    const textureManager = TextureManager(options);
+    const resourceLoader = await getResourceLoader(options.jarUrl);
+    const modelLoader = await getModelLoader(resourceLoader);
 
     const buildSceneFromSchematic = async (
         schematic: Schematic,
@@ -62,7 +71,10 @@ export async function renderSchematic(
             if (INVISIBLE_BLOCKS.has(block.type)) {
                 continue;
             }
-            const meshFunc = await textureManager.getModel(block.type);
+            const meshFunc = await modelLoader.getModel(block);
+            if (!meshFunc) {
+                continue;
+            }
             const mesh = await meshFunc(
                 (xOffset: number, yOffset: number, zOffset: number) => {
                     const offBlock = schematic.getBlock({
@@ -70,7 +82,7 @@ export async function renderSchematic(
                         y: y + yOffset,
                         z: z + zOffset
                     });
-                    return !offBlock || INVISIBLE_BLOCKS.has(offBlock.type);
+                    return !offBlock || TRANSPARENT_BLOCKS.has(offBlock.type);
                 }
             );
             mesh.position.x = -schematic.width / 2 + x + 0.5;
@@ -112,9 +124,6 @@ export async function renderSchematic(
 
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
-    await textureManager.setup(
-        loadedSchematic.blockTypes.filter(block => !INVISIBLE_BLOCKS.has(block))
-    );
     await buildSceneFromSchematic(loadedSchematic, scene);
     const {
         width: worldWidth,
@@ -151,12 +160,12 @@ export async function renderSchematic(
         scene.add(arrowMesh);
     }
 
-    const worldLight = new DirectionalLight(0xffffff, 1);
-    worldLight.position.x = cameraOffset;
-    worldLight.position.z = cameraOffset;
-    worldLight.position.y = cameraOffset;
+    const worldLight = new DirectionalLight(0xffffff, 0.8);
+    worldLight.position.x = 0;
+    worldLight.position.z = 0;
+    worldLight.position.y = worldHeight / 2 + 1;
     scene.add(worldLight);
-    scene.add(new AmbientLight(new Color(), 0.5));
+    scene.add(new AmbientLight(new Color(), 0.6));
 
     if (options.renderBars ?? true) {
         const gridGeom = new CylinderGeometry(
@@ -206,7 +215,7 @@ export async function renderSchematic(
         }
     }
 
-    const renderer = new WebGLRenderer({ antialias: false, canvas });
+    const renderer = new WebGLRenderer({ antialias: true, canvas });
     renderer.setClearColor(new Color(0xffffff));
     renderer.setSize(options.size, options.size);
 
