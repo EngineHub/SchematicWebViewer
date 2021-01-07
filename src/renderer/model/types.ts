@@ -14,7 +14,7 @@ type BlockStateDefinitionModel =
       }[];
 
 // This is necessary to work around a restriction that prevents index types from having non-conforming sibling types
-type BlockStateDefinitionVariant<T> = { [variant: string]: T };
+export type BlockStateDefinitionVariant<T> = { [variant: string]: T };
 
 // This is not technically a valid type. TS will complain if you try to instantiate an object with it.
 // Luckily for our use cases, we don't need to. This just models existing data.

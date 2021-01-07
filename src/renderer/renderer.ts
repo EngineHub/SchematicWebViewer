@@ -16,6 +16,7 @@ import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
+import NonOccludingBlocks from './nonOccluding.json';
 
 function parseNbt(nbt: string): Tag {
     const buff = Buffer.from(nbt, 'base64');
@@ -35,22 +36,9 @@ const INVISIBLE_BLOCKS = new Set([
     'barrier'
 ]);
 
-// TODO Somehow automate this
 const TRANSPARENT_BLOCKS = new Set([
     ...INVISIBLE_BLOCKS,
-    'oak_leaves',
-    'birch_leaves',
-    'dandelion',
-    'grass',
-    'snow',
-    'wheat',
-    'cornflower',
-    'tall_grass',
-    'water',
-    'lava',
-    'glass_pane',
-    'grass_path',
-    'farmland'
+    ...NonOccludingBlocks
 ]);
 
 export async function renderSchematic(

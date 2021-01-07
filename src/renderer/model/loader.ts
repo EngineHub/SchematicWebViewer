@@ -13,7 +13,7 @@ import {
 } from 'three';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { getBlockStateDefinition, getModel } from './parser';
-import { Faces, Vector } from './types';
+import { BlockStateDefinitionVariant, Faces, Vector } from './types';
 
 type IsAdjacentEmpty = (x: number, y: number, z: number) => boolean;
 
@@ -222,6 +222,47 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
                 modelRefs.push(variant.model);
             } else if (blockState.multipart) {
+                const doesFilterPass = (
+                    filter: BlockStateDefinitionVariant<string>
+                ) => {
+                    for (const property of Object.keys(filter)) {
+                        if (block.properties[property] !== filter[property]) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                for (const part of blockState.multipart) {
+                    if (part.when) {
+                        // Check filters
+                        if (part.when.OR) {
+                            let anyPassed = false;
+                            for (const test of part.when.OR) {
+                                if (doesFilterPass(test)) {
+                                    anyPassed = true;
+                                    break;
+                                }
+                            }
+                            if (!anyPassed) {
+                                continue;
+                            }
+                        } else {
+                            if (!doesFilterPass(part.when)) {
+                                break;
+                            }
+                        }
+                    }
+
+                    let models = part.apply;
+
+                    if (Array.isArray(models)) {
+                        models =
+                            models[Math.floor(Math.random() & models.length)];
+                    }
+
+                    modelRefs.push(models.model);
+                }
             }
 
             if (modelRefs.length > 0) {
