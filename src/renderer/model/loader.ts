@@ -74,7 +74,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         }
         return await new Promise((resolve, reject) => {
             loader.load(
-                URL.createObjectURL(blob),
+                blob,
                 texture => {
                     resolve(texture);
                 },
@@ -90,15 +90,11 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         uv?: [number, number, number, number],
         tintindex?: number
     ): Promise<Material> {
-        const canCache =
-            (rotation === undefined || rotation === 0) &&
-            (uv === undefined || uv === [0, 0, 16, 16]) &&
-            tintindex === undefined;
-        if (canCache) {
-            const cached = materialCache.get(tex);
-            if (cached) {
-                return cached;
-            }
+        const cacheKey = `${tex}_rot=${rotation}_uv=${uv}_tint=${tintindex}`;
+
+        const cached = materialCache.get(cacheKey);
+        if (cached) {
+            return cached;
         }
 
         const texture = await loadTexture(tex);
@@ -132,9 +128,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         });
 
         mat.transparent = true;
-        if (canCache) {
-            materialCache.set(tex, mat);
-        }
+        materialCache.set(cacheKey, mat);
         return mat;
     }
 
@@ -327,7 +321,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 }
                                 if (modelHolder.y) {
                                     geometry.rotateY(
-                                        MathUtils.DEG2RAD * modelHolder.y
+                                        -MathUtils.DEG2RAD * modelHolder.y
                                     );
                                 }
 
