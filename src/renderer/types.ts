@@ -8,4 +8,6 @@ export interface SchematicRenderOptions {
     jarUrl?: string;
     renderBars?: boolean;
     renderArrow?: boolean;
+    orbit?: boolean;
+    antialias?: boolean;
 }
