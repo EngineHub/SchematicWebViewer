@@ -1,13 +1,12 @@
 import {
     WebGLRenderer,
-    DirectionalLight,
     Color,
     CylinderGeometry,
     OrthographicCamera,
     MeshBasicMaterial,
     Scene,
     Mesh,
-    AmbientLight
+    Object3D
 } from 'three';
 import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
@@ -17,6 +16,8 @@ import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
 import NonOccludingBlocks from './nonOccluding.json';
+import { POSSIBLE_FACES } from './model/types';
+import { faceToFacingVector } from './utils';
 
 function parseNbt(nbt: string): Tag {
     const buff = Buffer.from(nbt, 'base64');
@@ -36,7 +37,7 @@ const INVISIBLE_BLOCKS = new Set([
     'barrier'
 ]);
 
-const TRANSPARENT_BLOCKS = new Set([
+export const TRANSPARENT_BLOCKS = new Set([
     ...INVISIBLE_BLOCKS,
     ...NonOccludingBlocks
 ]);
@@ -44,21 +45,31 @@ const TRANSPARENT_BLOCKS = new Set([
 export async function renderSchematic(
     canvas: HTMLCanvasElement,
     schematic: string,
-    options: SchematicRenderOptions
+    {
+        jarUrl,
+        size,
+        orbit = true,
+        renderArrow = true,
+        renderBars = true,
+        antialias = false
+    }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const scene = new Scene();
     let hasDestroyed = false;
     let isDragging = false;
+    let dragButton = -1;
     let dragStartX = 0;
     let dragStartY = 0;
 
-    const resourceLoader = await getResourceLoader(options.jarUrl);
+    const resourceLoader = await getResourceLoader(jarUrl);
     const modelLoader = await getModelLoader(resourceLoader);
 
     const buildSceneFromSchematic = async (
         schematic: Schematic,
         scene: Scene
     ) => {
+        const meshMap = new Map();
+
         for (const pos of schematic) {
             const { x, y, z } = pos;
             const block = schematic.getBlock(pos);
@@ -71,55 +82,95 @@ export async function renderSchematic(
             if (INVISIBLE_BLOCKS.has(block.type)) {
                 continue;
             }
-            const meshFunc = await modelLoader.getModel(block);
-            if (!meshFunc) {
+
+            let anyVisible = false;
+
+            for (const face of POSSIBLE_FACES) {
+                const faceOffset = faceToFacingVector(face);
+                const offBlock = schematic.getBlock({
+                    x: x + faceOffset[0],
+                    y: y + faceOffset[1],
+                    z: z + faceOffset[2]
+                });
+
+                if (!offBlock || TRANSPARENT_BLOCKS.has(offBlock.type)) {
+                    anyVisible = true;
+                    break;
+                }
+            }
+
+            if (!anyVisible) {
                 continue;
             }
-            const mesh = await meshFunc(
-                (xOffset: number, yOffset: number, zOffset: number) => {
-                    const offBlock = schematic.getBlock({
-                        x: x + xOffset,
-                        y: y + yOffset,
-                        z: z + zOffset
-                    });
-                    return !offBlock || TRANSPARENT_BLOCKS.has(offBlock.type);
-                }
-            );
+
+            let mesh: Object3D = undefined;
+            if (meshMap.has(block)) {
+                mesh = meshMap.get(block).clone();
+            } else {
+                mesh = await modelLoader.getModel(block);
+                meshMap.set(block, mesh);
+            }
+            if (!mesh || mesh.children.length === 0) {
+                continue;
+            }
+
             mesh.position.x = -schematic.width / 2 + x + 0.5;
             mesh.position.y = -schematic.height / 2 + y + 0.5;
             mesh.position.z = -schematic.length / 2 + z + 0.5;
             scene.add(mesh);
         }
+
+        meshMap.clear();
     };
 
     const mousedownCallback = (e: MouseEvent) => {
         isDragging = true;
+        dragButton = e.button;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
         e.preventDefault();
     };
+
     const mousemoveCallback = (e: MouseEvent) => {
-        if (!isDragging) return;
+        if (!isDragging) {
+            return;
+        }
 
         const deltaX = e.clientX - dragStartX;
         const deltaY = e.clientY - dragStartY;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
 
-        scene.rotation.y += deltaX / 100;
-        scene.rotation.x += deltaY / 100;
+        if (dragButton === 0) {
+            scene.rotation.y += deltaX / 100;
+            scene.rotation.x += deltaY / 100;
+        }
+
+        if (!orbit) {
+            render();
+        }
 
         e.preventDefault();
     };
-    const mouseupCallback = () => {
+    const mouseupCallback = (e: MouseEvent) => {
         isDragging = false;
+        dragButton = -1;
+
+        if (!orbit) {
+            render();
+        }
     };
+
     const mouseWheelCallback = (e: WheelEvent) => {
         const delta = e.deltaY / 1000;
 
         camera.zoom = Math.max(camera.zoom - delta, 0.01);
         camera.updateProjectionMatrix();
         e.preventDefault();
+
+        if (!orbit) {
+            render();
+        }
     };
 
     const rootTag = parseNbt(schematic);
@@ -137,13 +188,13 @@ export async function renderSchematic(
         cameraOffset,
         -cameraOffset,
         0.01,
-        10000
+        1000
     );
     camera.position.z = cameraOffset * 5;
     camera.position.y = (cameraOffset / 2) * 5;
     camera.lookAt(0, 0, 0);
 
-    if (options.renderArrow ?? true) {
+    if (renderArrow) {
         const arrowMaterial = new MeshBasicMaterial({
             color: new Color(0x000000)
         });
@@ -160,14 +211,7 @@ export async function renderSchematic(
         scene.add(arrowMesh);
     }
 
-    const worldLight = new DirectionalLight(0xffffff, 0.8);
-    worldLight.position.x = 0;
-    worldLight.position.z = 0;
-    worldLight.position.y = worldHeight / 2 + 1;
-    scene.add(worldLight);
-    scene.add(new AmbientLight(new Color(), 0.6));
-
-    if (options.renderBars ?? true) {
+    if (renderBars) {
         const gridGeom = new CylinderGeometry(
             cameraOffset / 400,
             cameraOffset / 400,
@@ -215,12 +259,22 @@ export async function renderSchematic(
         }
     }
 
-    const renderer = new WebGLRenderer({ antialias: true, canvas });
+    const renderer = new WebGLRenderer({
+        antialias,
+        canvas,
+        powerPreference: 'high-performance'
+    });
     renderer.setClearColor(new Color(0xffffff));
-    renderer.setSize(options.size, options.size);
+    renderer.setSize(size, size);
 
     canvas.addEventListener('mousedown', mousedownCallback);
     canvas.addEventListener('wheel', mouseWheelCallback);
+    canvas.addEventListener('contextmenu', e => {
+        // right click is drag, don't let the menu get in the way.
+        e.preventDefault();
+        return false;
+    });
+
     document.body.addEventListener('mousemove', mousemoveCallback);
     document.body.addEventListener('mouseup', mouseupCallback);
 
@@ -230,18 +284,21 @@ export async function renderSchematic(
             return;
         }
 
-        requestAnimationFrame(render);
+        if (orbit) {
+            requestAnimationFrame(render);
 
-        const nowTime = performance.now();
-        const deltaTime = nowTime - lastTime;
-        lastTime = nowTime;
-        if (!isDragging) {
-            scene.rotation.y += deltaTime / 4000;
+            const nowTime = performance.now();
+            const deltaTime = nowTime - lastTime;
+            lastTime = nowTime;
+            if (!isDragging) {
+                scene.rotation.y += deltaTime / 4000;
+            }
         }
 
         renderer.render(scene, camera);
     }
     render();
+    console.log(renderer.info.render);
 
     return {
         resize(size: number): void {

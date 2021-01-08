@@ -3,55 +3,30 @@ import deepmerge from 'deepmerge';
 import {
     Material,
     TextureLoader,
-    MeshPhongMaterial,
-    Scene,
     Mesh,
     Texture,
     NearestFilter,
     Color,
     NearestMipmapLinearFilter,
     MathUtils,
-    BoxGeometry,
     MeshBasicMaterial,
-    Group
+    Group,
+    BoxGeometry
 } from 'three';
 import { ResourceLoader } from '../../resource/resourceLoader';
+import { TRANSPARENT_BLOCKS } from '../renderer';
 import { getBlockStateDefinition, getModel } from './parser';
 import {
     BlockStateDefinitionVariant,
     BlockStateModelHolder,
-    Faces,
     POSSIBLE_FACES,
     Vector
 } from './types';
-
-type IsAdjacentEmpty = (x: number, y: number, z: number) => boolean;
-
-const BLANK_MATERIAL = new MeshBasicMaterial({ transparent: true, opacity: 0 });
 
 const TINT_COLOR = new Color(0x91bd59);
 const WATER_COLOR = new Color(0x2439d6);
 const LAVA_COLOR = new Color(0xe85917);
 const BLANK_COLOR = new Color();
-
-function faceToFacingVector(face: Faces): Vector {
-    switch (face) {
-        case 'up':
-            return [0, 1, 0];
-        case 'down':
-            return [0, -1, 0];
-        case 'north':
-            return [0, 0, -1];
-        case 'south':
-            return [0, 0, 1];
-        case 'east':
-            return [1, 0, 0];
-        case 'west':
-            return [-1, 0, 0];
-        default:
-            return [0, 0, 0];
-    }
-}
 
 function normalize(input: number): number {
     return input / 16 - 0.5;
@@ -88,7 +63,8 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         tex: string,
         rotation?: number,
         uv?: [number, number, number, number],
-        tintindex?: number
+        tintindex?: number,
+        transparent?: boolean
     ): Promise<Material> {
         const cacheKey = `${tex}_rot=${rotation}_uv=${uv}_tint=${tintindex}`;
 
@@ -121,13 +97,12 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
             color = BLANK_COLOR;
         }
 
-        const mat = new MeshPhongMaterial({
+        const mat = new MeshBasicMaterial({
             map: texture,
             color,
-            shininess: 0
+            transparent: transparent || tex.includes('overlay')
         });
 
-        mat.transparent = true;
         materialCache.set(cacheKey, mat);
         return mat;
     }
@@ -219,162 +194,157 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
             }
 
             if (modelRefs.length > 0) {
-                return async (f: IsAdjacentEmpty) => {
-                    const scene = new Scene();
-                    for (const modelHolder of modelRefs) {
-                        const model = await getModel(
-                            modelHolder.model,
-                            resourceLoader
-                        );
-                        const resolveTexture = (ref: string) => {
-                            while (ref.startsWith('#')) {
-                                ref = model.textures[ref.substring(1)];
-                            }
-
-                            return ref;
-                        };
-
-                        if (block.type === 'water' || block.type === 'lava') {
-                            // These blocks are not rendered via models, so handle specially.
-                            model.textures['all'] = model.textures.particle;
-                            const temporaryModel = deepmerge(
-                                await getModel(
-                                    'block/cube_all',
-                                    resourceLoader
-                                ),
-                                model
-                            );
-                            model.textures = temporaryModel.textures;
-                            model.elements = temporaryModel.elements;
+                const group = new Group();
+                for (const modelHolder of modelRefs) {
+                    const model = await getModel(
+                        modelHolder.model,
+                        resourceLoader
+                    );
+                    const resolveTexture = (ref: string) => {
+                        while (ref.startsWith('#')) {
+                            ref = model.textures[ref.substring(1)];
                         }
 
-                        const meshGroup = new Group();
+                        return ref;
+                    };
 
-                        if (model.elements) {
-                            for (const element of model.elements) {
-                                // Normalize to/from to threejs coords.
-                                element.from = element.from.map(
-                                    normalize
-                                ) as Vector;
-                                element.to = element.to.map(
-                                    normalize
-                                ) as Vector;
+                    if (block.type === 'water' || block.type === 'lava') {
+                        // These blocks are not rendered via models, so handle specially.
+                        model.textures['all'] = model.textures.particle;
+                        const temporaryModel = deepmerge(
+                            await getModel('block/cube_all', resourceLoader),
+                            model
+                        );
+                        model.textures = temporaryModel.textures;
+                        model.elements = temporaryModel.elements;
+                    }
 
-                                const elementSize = [
-                                    element.to[0] - element.from[0],
-                                    element.to[1] - element.from[1],
-                                    element.to[2] - element.from[2]
-                                ];
+                    if (model.elements) {
+                        for (const element of model.elements) {
+                            if (Object.keys(element.faces).length === 0) {
+                                continue;
+                            }
 
-                                const materials = [];
+                            // Normalize to/from to threejs coords.
+                            element.from = element.from.map(
+                                normalize
+                            ) as Vector;
+                            element.to = element.to.map(normalize) as Vector;
 
-                                let anyRendered = false;
-                                for (const face of POSSIBLE_FACES) {
-                                    if (!element.faces[face]) {
-                                        materials.push(BLANK_MATERIAL);
-                                        continue;
-                                    }
-                                    const faceData = element.faces[face];
+                            const elementSize = [
+                                element.to[0] - element.from[0],
+                                element.to[1] - element.from[1],
+                                element.to[2] - element.from[2]
+                            ];
 
-                                    if (
-                                        f(
-                                            ...faceToFacingVector(
-                                                faceData.cullface ?? face
-                                            )
-                                        )
+                            const materials = [];
+                            const geometry = new BoxGeometry(
+                                ...elementSize,
+                                1,
+                                1,
+                                1
+                            );
+
+                            let index = -1;
+                            for (const face of POSSIBLE_FACES) {
+                                index++;
+                                if (!element.faces[face]) {
+                                    for (
+                                        let i = geometry.faces.length - 1;
+                                        i >= 0;
+                                        i--
                                     ) {
-                                        // Culling doesn't work too well with rotations. So we just cull full cubes.
-                                        anyRendered = true;
+                                        if (
+                                            geometry.faces[i] &&
+                                            geometry.faces[i].materialIndex ===
+                                                index
+                                        ) {
+                                            geometry.faces.splice(i, 1);
+                                        }
                                     }
-
-                                    materials.push(
-                                        await getTextureMaterial(
-                                            resolveTexture(faceData.texture),
-                                            faceData.rotation,
-                                            faceData.uv,
-                                            faceData.tintindex
-                                        )
-                                    );
-                                }
-
-                                if (!anyRendered) {
+                                    materials.push(undefined);
                                     continue;
                                 }
+                                const faceData = element.faces[face];
 
-                                const geometry = new BoxGeometry(
-                                    ...elementSize,
-                                    1,
-                                    1,
-                                    1
+                                materials.push(
+                                    await getTextureMaterial(
+                                        resolveTexture(faceData.texture),
+                                        faceData.rotation,
+                                        faceData.uv,
+                                        faceData.tintindex,
+                                        TRANSPARENT_BLOCKS.has(block.type)
+                                    )
                                 );
+                            }
+
+                            geometry.elementsNeedUpdate = true;
+
+                            if (geometry.faces.length === 0) {
+                                geometry.dispose();
+                                continue;
+                            }
+
+                            geometry.translate(
+                                element.from[0] + elementSize[0] / 2,
+                                element.from[1] + elementSize[1] / 2,
+                                element.from[2] + elementSize[2] / 2
+                            );
+
+                            if (modelHolder.x) {
+                                geometry.rotateX(
+                                    -MathUtils.DEG2RAD * modelHolder.x
+                                );
+                            }
+                            if (modelHolder.y) {
+                                geometry.rotateY(
+                                    -MathUtils.DEG2RAD * modelHolder.y
+                                );
+                            }
+
+                            if (element.rotation) {
+                                geometry.translate(
+                                    -normalize(element.rotation.origin[0]),
+                                    -normalize(element.rotation.origin[1]),
+                                    -normalize(element.rotation.origin[2])
+                                );
+
+                                switch (element.rotation.axis) {
+                                    case 'y':
+                                        geometry.rotateY(
+                                            -element.rotation.angle *
+                                                MathUtils.DEG2RAD
+                                        );
+                                        break;
+                                    case 'x':
+                                        geometry.rotateX(
+                                            -element.rotation.angle *
+                                                MathUtils.DEG2RAD
+                                        );
+                                        break;
+                                    case 'z':
+                                        geometry.rotateZ(
+                                            -element.rotation.angle *
+                                                MathUtils.DEG2RAD
+                                        );
+                                        break;
+                                }
 
                                 geometry.translate(
-                                    element.from[0] + elementSize[0] / 2,
-                                    element.from[1] + elementSize[1] / 2,
-                                    element.from[2] + elementSize[2] / 2
+                                    normalize(element.rotation.origin[0]),
+                                    normalize(element.rotation.origin[1]),
+                                    normalize(element.rotation.origin[2])
                                 );
-
-                                if (modelHolder.x) {
-                                    geometry.rotateX(
-                                        MathUtils.DEG2RAD * modelHolder.x
-                                    );
-                                }
-                                if (modelHolder.y) {
-                                    geometry.rotateY(
-                                        -MathUtils.DEG2RAD * modelHolder.y
-                                    );
-                                }
-
-                                if (element.rotation) {
-                                    geometry.translate(
-                                        normalize(element.rotation.origin[0]),
-                                        normalize(element.rotation.origin[1]),
-                                        normalize(element.rotation.origin[2])
-                                    );
-
-                                    switch (element.rotation.axis) {
-                                        case 'y':
-                                            geometry.rotateY(
-                                                element.rotation.angle *
-                                                    MathUtils.DEG2RAD
-                                            );
-                                            break;
-                                        case 'x':
-                                            geometry.rotateX(
-                                                element.rotation.angle *
-                                                    MathUtils.DEG2RAD
-                                            );
-                                            break;
-                                        case 'z':
-                                            geometry.rotateZ(
-                                                element.rotation.angle *
-                                                    MathUtils.DEG2RAD
-                                            );
-                                            break;
-                                    }
-
-                                    geometry.translate(
-                                        -normalize(element.rotation.origin[0]),
-                                        -normalize(element.rotation.origin[1]),
-                                        -normalize(element.rotation.origin[2])
-                                    );
-                                }
-
-                                meshGroup.add(new Mesh(geometry, materials));
                             }
 
-                            if (meshGroup.children.length > 0) {
-                                scene.add(meshGroup);
-                            }
+                            group.add(new Mesh(geometry, materials));
                         }
                     }
-                    return scene;
-                };
+                }
+                return group;
             } else {
                 console.log(blockState);
-                return async () => {
-                    return new Scene();
-                };
+                return undefined;
             }
         }
     };
