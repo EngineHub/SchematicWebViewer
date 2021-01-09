@@ -5,7 +5,7 @@ export interface SchematicHandles {
 
 export interface SchematicRenderOptions {
     size: number;
-    jarUrl?: string;
+    jarUrl?: string | string[];
     renderBars?: boolean;
     renderArrow?: boolean;
     orbit?: boolean;

@@ -131,6 +131,34 @@ export async function renderSchematic(
         e.preventDefault();
     };
 
+    const touchdownCallback = (e: TouchEvent) => {
+        isDragging = true;
+        dragButton = -1;
+        const touch = e.touches.item(0);
+
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        e.preventDefault();
+    };
+    const touchmoveCallback = (e: TouchEvent) => {
+        if (!isDragging) {
+            return;
+        }
+
+        const touch = e.touches.item(0);
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+
+        scene.rotation.y += deltaX / 100;
+        scene.rotation.x += deltaY / 100;
+
+        if (!orbit) {
+            render();
+        }
+    };
+
     const mousemoveCallback = (e: MouseEvent) => {
         if (!isDragging) {
             return;
@@ -274,9 +302,14 @@ export async function renderSchematic(
         e.preventDefault();
         return false;
     });
+    canvas.addEventListener('touchstart', touchdownCallback);
 
     document.body.addEventListener('mousemove', mousemoveCallback);
     document.body.addEventListener('mouseup', mouseupCallback);
+
+    document.body.addEventListener('touchmove', touchmoveCallback);
+    document.body.addEventListener('touchcancel', mouseupCallback);
+    document.body.addEventListener('touchend', mouseupCallback);
 
     let lastTime = performance.now();
     function render() {
