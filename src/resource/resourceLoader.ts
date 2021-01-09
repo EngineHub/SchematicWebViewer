@@ -5,18 +5,29 @@ export interface ResourceLoader {
     getResourceString: (name: string) => Promise<string> | undefined;
 }
 
-let zipPromise: Promise<JSZip> = undefined;
-let zip: JSZip = undefined;
+let zipPromise: Promise<JSZip | JSZip[]> = undefined;
+let zip: JSZip | JSZip[] = undefined;
 
-async function loadZip(jarUrl: string) {
-    const zipFile = await (await fetch(jarUrl)).blob();
-    const zip = await JSZip.loadAsync(zipFile);
+async function loadZip(jarUrl: string | string[]) {
+    if (Array.isArray(jarUrl)) {
+        return await Promise.all(
+            jarUrl.map(async url => {
+                const zipFile = await (await fetch(url)).blob();
+                const zip = await JSZip.loadAsync(zipFile);
 
-    return zip;
+                return zip;
+            })
+        );
+    } else {
+        const zipFile = await (await fetch(jarUrl)).blob();
+        const zip = await JSZip.loadAsync(zipFile);
+
+        return zip;
+    }
 }
 
 export async function getResourceLoader(
-    jarUrl: string
+    jarUrl: string | string[]
 ): Promise<ResourceLoader> {
     if (!zip) {
         if (!zipPromise) {
@@ -32,9 +43,21 @@ export async function getResourceLoader(
         if (blobCache.has(name)) {
             return blobCache.get(name);
         } else {
-            const data = await zip
-                .file(`assets/minecraft/${name}`)
-                ?.async('blob');
+            let data: Blob;
+            if (Array.isArray(zip)) {
+                for (const zipFile of zip) {
+                    data = await zipFile
+                        .file(`assets/minecraft/${name}`)
+                        ?.async('blob');
+                    if (data) {
+                        break;
+                    }
+                }
+            } else {
+                data = await zip
+                    .file(`assets/minecraft/${name}`)
+                    ?.async('blob');
+            }
             if (!data) {
                 blobCache.set(name, undefined);
                 return undefined;
@@ -49,9 +72,21 @@ export async function getResourceLoader(
         if (stringCache.has(name)) {
             return stringCache.get(name);
         } else {
-            const data = await zip
-                .file(`assets/minecraft/${name}`)
-                ?.async('string');
+            let data: string;
+            if (Array.isArray(zip)) {
+                for (const zipFile of zip) {
+                    data = await zipFile
+                        .file(`assets/minecraft/${name}`)
+                        ?.async('string');
+                    if (data) {
+                        break;
+                    }
+                }
+            } else {
+                data = await zip
+                    .file(`assets/minecraft/${name}`)
+                    ?.async('string');
+            }
             stringCache.set(name, data);
             return data;
         }

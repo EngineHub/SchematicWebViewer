@@ -13,7 +13,7 @@ window.addEventListener('load', () => {
         renderArrow: false,
         renderBars: false,
         jarUrl:
-            'https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar'
+            ['https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar']
     });
 
     renderSchematic(
@@ -21,7 +21,7 @@ window.addEventListener('load', () => {
         SIMPLE_SCHEM,
         {
             size: 250,
-            jarUrl: 'https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar',
+            jarUrl: ['https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar'],
             renderArrow: false,
             renderBars: false
         }

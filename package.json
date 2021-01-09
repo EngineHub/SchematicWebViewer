@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "2.0.3",
+    "version": "2.1.0",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/index.js",
     "files": [
@@ -11,7 +11,7 @@
         "build": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
         "postinstall": "patch-package",
-        "start": "parcel test/test.html --port 3000"
+        "start": "parcel test/test.html --port 3000 --host 0.0.0.0"
     },
     "repository": {
         "type": "git",
