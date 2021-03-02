@@ -10,4 +10,5 @@ export interface SchematicRenderOptions {
     renderArrow?: boolean;
     orbit?: boolean;
     antialias?: boolean;
+    backgroundColor?: number | 'transparent';
 }

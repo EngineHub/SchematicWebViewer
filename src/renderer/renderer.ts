@@ -51,7 +51,8 @@ export async function renderSchematic(
         orbit = true,
         renderArrow = true,
         renderBars = true,
-        antialias = false
+        antialias = false,
+        backgroundColor = 0xffffff
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const scene = new Scene();
@@ -290,9 +291,12 @@ export async function renderSchematic(
     const renderer = new WebGLRenderer({
         antialias,
         canvas,
-        powerPreference: 'high-performance'
+        powerPreference: 'high-performance',
+        alpha: backgroundColor === 'transparent'
     });
-    renderer.setClearColor(new Color(0xffffff));
+    if (backgroundColor !== 'transparent') {
+        renderer.setClearColor(new Color(backgroundColor));
+    }
     renderer.setSize(size, size);
 
     canvas.addEventListener('mousedown', mousedownCallback);
