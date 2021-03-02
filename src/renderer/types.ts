@@ -10,4 +10,6 @@ export interface SchematicRenderOptions {
     renderArrow?: boolean;
     orbit?: boolean;
     antialias?: boolean;
+    alpha?: boolean;
+    backgroundColor?: string | number;
 }
