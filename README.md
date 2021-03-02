@@ -39,5 +39,7 @@ interface SchematicRenderOptions {
     renderArrow?: boolean; // Whether an arrow to show direction should be rendered
     orbit?: boolean; // Whether the view should automatically rotate when not being dragged by the user
     antialias?: boolean; // Whether antialiasing should be enabled
+    alpha?: boolean; // Whether the canvas has alpha enabled / is transparent (default: false)
+    backgroundColor?: string | number; // Background color of the canvas (default: 0xffffff)
 }
 ```
