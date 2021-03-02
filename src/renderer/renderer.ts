@@ -52,7 +52,6 @@ export async function renderSchematic(
         renderArrow = true,
         renderBars = true,
         antialias = false,
-        alpha = false,
         backgroundColor = 0xffffff
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
@@ -293,9 +292,9 @@ export async function renderSchematic(
         antialias,
         canvas,
         powerPreference: 'high-performance',
-        alpha
+        alpha: backgroundColor === 'transparent'
     });
-    if (!alpha) {
+    if (backgroundColor !== 'transparent') {
         renderer.setClearColor(new Color(backgroundColor));
     }
     renderer.setSize(size, size);
