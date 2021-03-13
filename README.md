@@ -40,5 +40,6 @@ interface SchematicRenderOptions {
     orbit?: boolean; // Whether the view should automatically rotate when not being dragged by the user
     antialias?: boolean; // Whether antialiasing should be enabled
     backgroundColor?: number | 'transparent'; // Background color of the canvas (default: 0xffffff)
+    loadingSpinner?: boolean; // Whether the loading spinner should render
 }
 ```

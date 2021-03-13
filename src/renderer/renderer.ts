@@ -9,9 +9,8 @@ import {
     Object3D,
     LoadingManager,
     PerspectiveCamera,
-    RingGeometry,
     Camera,
-    MathUtils
+    TorusGeometry
 } from 'three';
 import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
@@ -57,7 +56,8 @@ export async function renderSchematic(
         renderArrow = true,
         renderBars = true,
         antialias = false,
-        backgroundColor = 0xffffff
+        backgroundColor = 0xffffff,
+        loadingSpinner = true
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const scene = new Scene();
@@ -240,6 +240,10 @@ export async function renderSchematic(
     document.body.addEventListener('touchcancel', mouseupCallback);
     document.body.addEventListener('touchend', mouseupCallback);
 
+    const loadingScene = new Scene();
+    const loadingGeometry = new TorusGeometry( 5, 1, 16, 50 );
+    loadingScene.add(new Mesh(loadingGeometry, new MeshBasicMaterial({ color: 0x000000 })));
+
     let lastTime = performance.now();
     function render() {
         if (hasDestroyed) {
@@ -250,23 +254,25 @@ export async function renderSchematic(
         const deltaTime = nowTime - lastTime;
         lastTime = nowTime;
 
-        if (loaded && orbit) {
+        if (orbit) {
             requestAnimationFrame(render);
 
-            if (!isDragging) {
+            if (!isDragging && loaded) {
                 scene.rotation.y += deltaTime / 4000;
             }
         }
 
         if (!loaded) {
-            requestAnimationFrame(render);
+            if (loadingSpinner) {
+                // TODO Replace this with a loading indicator that's better.
+                loadingScene.rotation.y += deltaTime / 500;
+                renderer.render(loadingScene, camera);
 
-            // TODO Replace this with a loading indicator that's better.
-            const loadingScene = new Scene();
-            const geometry = new RingGeometry( 5, 7, 50 );
-            geometry.rotateY((nowTime / 5) * MathUtils.DEG2RAD);
-            loadingScene.add(new Mesh(geometry, new MeshBasicMaterial({ color: 0x000000 })));
-            renderer.render(loadingScene, camera);
+                if (!orbit) {
+                    // Request one if not already done.
+                    requestAnimationFrame(render);
+                }
+            }
         } else {
             renderer.render(scene, camera);
         }
