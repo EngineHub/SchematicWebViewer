@@ -12,7 +12,8 @@ import {
     MeshBasicMaterial,
     Group,
     BoxGeometry,
-    RepeatWrapping
+    RepeatWrapping,
+    LoadingManager,
 } from 'three';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { TRANSPARENT_BLOCKS } from '../renderer';
@@ -33,9 +34,9 @@ function normalize(input: number): number {
     return input / 16 - 0.5;
 }
 
-export async function getModelLoader(resourceLoader: ResourceLoader) {
+export async function getModelLoader(resourceLoader: ResourceLoader, loadingManager: LoadingManager) {
     const materialCache = new Map<string, Material>();
-    const loader = new TextureLoader();
+    const loader = new TextureLoader(loadingManager);
 
     async function loadTexture(tex: string): Promise<Texture | undefined> {
         if (tex.startsWith('minecraft:')) {
