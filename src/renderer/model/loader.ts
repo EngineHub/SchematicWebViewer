@@ -114,7 +114,8 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         const mat = new MeshBasicMaterial({
             map: texture,
             color,
-            transparent: transparent || tex.includes('overlay')
+            transparent: transparent || tex.includes('overlay'),
+            depthWrite: !transparent
         });
 
         materialCache.set(cacheKey, mat);
@@ -259,9 +260,9 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 1
                             );
 
-                            let index = -1;
+                            // let index = -1;
                             for (const face of POSSIBLE_FACES) {
-                                index++;
+                                // index++;
                                 if (!element.faces[face]) {
                                     // for (
                                     //     let i = geometry.faces.length - 1;
@@ -303,17 +304,6 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 element.from[2] + elementSize[2] / 2
                             );
 
-                            if (modelHolder.x) {
-                                geometry.rotateX(
-                                    -MathUtils.DEG2RAD * modelHolder.x
-                                );
-                            }
-                            if (modelHolder.y) {
-                                geometry.rotateY(
-                                    -MathUtils.DEG2RAD * modelHolder.y
-                                );
-                            }
-
                             if (element.rotation) {
                                 geometry.translate(
                                     -normalize(element.rotation.origin[0]),
@@ -330,13 +320,13 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                         break;
                                     case 'x':
                                         geometry.rotateX(
-                                            -element.rotation.angle *
+                                            element.rotation.angle *
                                                 MathUtils.DEG2RAD
                                         );
                                         break;
                                     case 'z':
                                         geometry.rotateZ(
-                                            -element.rotation.angle *
+                                            element.rotation.angle *
                                                 MathUtils.DEG2RAD
                                         );
                                         break;
@@ -346,6 +336,17 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                     normalize(element.rotation.origin[0]),
                                     normalize(element.rotation.origin[1]),
                                     normalize(element.rotation.origin[2])
+                                );
+                            }
+
+                            if (modelHolder.x) {
+                                geometry.rotateX(
+                                    -MathUtils.DEG2RAD * modelHolder.x
+                                );
+                            }
+                            if (modelHolder.y) {
+                                geometry.rotateY(
+                                    -MathUtils.DEG2RAD * modelHolder.y
                                 );
                             }
 
