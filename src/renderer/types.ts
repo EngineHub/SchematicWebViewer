@@ -11,4 +11,5 @@ export interface SchematicRenderOptions {
     orbit?: boolean;
     antialias?: boolean;
     backgroundColor?: number | 'transparent';
+    loadingSpinner?: boolean;
 }
