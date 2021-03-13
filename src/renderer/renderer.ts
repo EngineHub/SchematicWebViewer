@@ -7,8 +7,11 @@ import {
     Scene,
     Mesh,
     Object3D,
-    DefaultLoadingManager,
-    LoadingManager
+    LoadingManager,
+    PerspectiveCamera,
+    RingGeometry,
+    Camera,
+    MathUtils
 } from 'three';
 import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
@@ -63,6 +66,7 @@ export async function renderSchematic(
     let dragButton = -1;
     let dragStartX = 0;
     let dragStartY = 0;
+    let loaded = false;
 
     const loadingManager = new LoadingManager();
     const resourceLoader = await getResourceLoader(jarUrl);
@@ -195,9 +199,10 @@ export async function renderSchematic(
 
     const mouseWheelCallback = (e: WheelEvent) => {
         const delta = e.deltaY / 1000;
+        const orthCam = (camera as OrthographicCamera);
 
-        camera.zoom = Math.max(camera.zoom - delta, 0.01);
-        camera.updateProjectionMatrix();
+        orthCam.zoom = Math.max(orthCam.zoom - delta, 0.01);
+        orthCam.updateProjectionMatrix();
         e.preventDefault();
 
         if (!orbit) {
@@ -216,14 +221,8 @@ export async function renderSchematic(
     }
     renderer.setSize(size, size);
 
-    let camera = new OrthographicCamera(
-        0,
-        0,
-        1,
-        1,
-        0.01,
-        1000
-    );
+    let camera: Camera = new PerspectiveCamera( 75, 1, 0.1, 50 );
+    camera.position.z = 30;
 
     canvas.addEventListener('mousedown', mousedownCallback);
     canvas.addEventListener('wheel', mouseWheelCallback);
@@ -247,18 +246,30 @@ export async function renderSchematic(
             return;
         }
 
-        if (orbit) {
+        const nowTime = performance.now();
+        const deltaTime = nowTime - lastTime;
+        lastTime = nowTime;
+
+        if (loaded && orbit) {
             requestAnimationFrame(render);
 
-            const nowTime = performance.now();
-            const deltaTime = nowTime - lastTime;
-            lastTime = nowTime;
             if (!isDragging) {
                 scene.rotation.y += deltaTime / 4000;
             }
         }
 
-        renderer.render(scene, camera);
+        if (!loaded) {
+            requestAnimationFrame(render);
+
+            // TODO Replace this with a loading indicator that's better.
+            const loadingScene = new Scene();
+            const geometry = new RingGeometry( 5, 7, 50 );
+            geometry.rotateY((nowTime / 5) * MathUtils.DEG2RAD);
+            loadingScene.add(new Mesh(geometry, new MeshBasicMaterial({ color: 0x000000 })));
+            renderer.render(loadingScene, camera);
+        } else {
+            renderer.render(scene, camera);
+        }
     }
     render();
 
@@ -347,6 +358,8 @@ export async function renderSchematic(
             }
         }
     }
+
+    loaded = true;
 
     return {
         resize(size: number): void {
