@@ -11,7 +11,8 @@ import {
     MathUtils,
     MeshBasicMaterial,
     Group,
-    BoxGeometry
+    BoxGeometry,
+    RepeatWrapping
 } from 'three';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { TRANSPARENT_BLOCKS } from '../renderer';
@@ -66,6 +67,14 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         tintindex?: number,
         transparent?: boolean
     ): Promise<Material> {
+        // Normalise values for better caching.
+        if (rotation === 0) {
+            rotation = undefined;
+        }
+        if (uv && uv[0] === 0 && uv[1] === 0 && uv[2] === 16 && uv[3] === 16) {
+            uv = undefined;
+        }
+
         const cacheKey = `${tex}_rot=${rotation}_uv=${uv}_tint=${tintindex}`;
 
         const cached = materialCache.get(cacheKey);
@@ -75,13 +84,18 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
         const texture = await loadTexture(tex);
         if (rotation) {
-            texture.rotation = rotation * MathUtils.DEG2RAD;
+            texture.center.x = 0.5;
+            texture.center.y = 0.5;
+            texture.rotation = -rotation * MathUtils.DEG2RAD;
         }
         if (uv) {
             texture.offset.x = uv[0] / 16;
             texture.offset.y = uv[1] / 16;
             texture.repeat.x = (uv[2] - uv[0]) / 16;
             texture.repeat.y = (uv[3] - uv[1]) / 16;
+
+            texture.wrapS = RepeatWrapping;
+            texture.wrapT = RepeatWrapping;
         }
         texture.magFilter = NearestFilter;
         texture.minFilter = NearestMipmapLinearFilter;
@@ -249,19 +263,19 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             for (const face of POSSIBLE_FACES) {
                                 index++;
                                 if (!element.faces[face]) {
-                                    for (
-                                        let i = geometry.faces.length - 1;
-                                        i >= 0;
-                                        i--
-                                    ) {
-                                        if (
-                                            geometry.faces[i] &&
-                                            geometry.faces[i].materialIndex ===
-                                                index
-                                        ) {
-                                            geometry.faces.splice(i, 1);
-                                        }
-                                    }
+                                    // for (
+                                    //     let i = geometry.faces.length - 1;
+                                    //     i >= 0;
+                                    //     i--
+                                    // ) {
+                                    //     if (
+                                    //         geometry.faces[i] &&
+                                    //         geometry.faces[i].materialIndex ===
+                                    //             index
+                                    //     ) {
+                                    //         geometry.faces.splice(i, 1);
+                                    //     }
+                                    // }
                                     materials.push(undefined);
                                     continue;
                                 }
@@ -278,12 +292,10 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 );
                             }
 
-                            geometry.elementsNeedUpdate = true;
-
-                            if (geometry.faces.length === 0) {
-                                geometry.dispose();
-                                continue;
-                            }
+                            // if (geometry.faces.length === 0) {
+                            //     geometry.dispose();
+                            //     continue;
+                            // }
 
                             geometry.translate(
                                 element.from[0] + elementSize[0] / 2,
