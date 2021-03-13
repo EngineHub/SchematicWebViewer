@@ -6,7 +6,9 @@ import {
     MeshBasicMaterial,
     Scene,
     Mesh,
-    Object3D
+    Object3D,
+    DefaultLoadingManager,
+    LoadingManager
 } from 'three';
 import { decode, Tag } from 'nbt-ts';
 import { unzip } from 'gzip-js';
@@ -17,7 +19,7 @@ import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
 import NonOccludingBlocks from './nonOccluding.json';
 import { POSSIBLE_FACES } from './model/types';
-import { faceToFacingVector } from './utils';
+import { faceToFacingVector, runPromisePool } from './utils';
 
 function parseNbt(nbt: string): Tag {
     const buff = Buffer.from(nbt, 'base64');
@@ -62,8 +64,9 @@ export async function renderSchematic(
     let dragStartX = 0;
     let dragStartY = 0;
 
+    const loadingManager = new LoadingManager();
     const resourceLoader = await getResourceLoader(jarUrl);
-    const modelLoader = await getModelLoader(resourceLoader);
+    const modelLoader = await getModelLoader(resourceLoader, loadingManager);
 
     const buildSceneFromSchematic = async (
         schematic: Schematic,
@@ -71,17 +74,17 @@ export async function renderSchematic(
     ) => {
         const meshMap = new Map();
 
-        for (const pos of schematic) {
+        await runPromisePool(Array.from(schematic).map((pos) => async () => {
             const { x, y, z } = pos;
             const block = schematic.getBlock(pos);
             if (!block) {
                 console.log(
                     `Missing block ${x} ${y} ${z} ${JSON.stringify(schematic)}`
                 );
-                continue;
+                return;
             }
             if (INVISIBLE_BLOCKS.has(block.type)) {
-                continue;
+                return;
             }
 
             let anyVisible = false;
@@ -101,7 +104,7 @@ export async function renderSchematic(
             }
 
             if (!anyVisible) {
-                continue;
+                return;
             }
 
             let mesh: Object3D = undefined;
@@ -112,14 +115,14 @@ export async function renderSchematic(
                 meshMap.set(block, mesh);
             }
             if (!mesh || mesh.children.length === 0) {
-                continue;
+                return;
             }
 
             mesh.position.x = -schematic.width / 2 + x + 0.5;
             mesh.position.y = -schematic.height / 2 + y + 0.5;
             mesh.position.z = -schematic.length / 2 + z + 0.5;
             scene.add(mesh);
-        }
+        }), 25);
 
         meshMap.clear();
     };
@@ -202,6 +205,63 @@ export async function renderSchematic(
         }
     };
 
+    const renderer = new WebGLRenderer({
+        antialias,
+        canvas,
+        powerPreference: 'high-performance',
+        alpha: backgroundColor === 'transparent'
+    });
+    if (backgroundColor !== 'transparent') {
+        renderer.setClearColor(new Color(backgroundColor));
+    }
+    renderer.setSize(size, size);
+
+    let camera = new OrthographicCamera(
+        0,
+        0,
+        1,
+        1,
+        0.01,
+        1000
+    );
+
+    canvas.addEventListener('mousedown', mousedownCallback);
+    canvas.addEventListener('wheel', mouseWheelCallback);
+    canvas.addEventListener('contextmenu', e => {
+        // right click is drag, don't let the menu get in the way.
+        e.preventDefault();
+        return false;
+    });
+    canvas.addEventListener('touchstart', touchdownCallback);
+
+    document.body.addEventListener('mousemove', mousemoveCallback);
+    document.body.addEventListener('mouseup', mouseupCallback);
+
+    document.body.addEventListener('touchmove', touchmoveCallback);
+    document.body.addEventListener('touchcancel', mouseupCallback);
+    document.body.addEventListener('touchend', mouseupCallback);
+
+    let lastTime = performance.now();
+    function render() {
+        if (hasDestroyed) {
+            return;
+        }
+
+        if (orbit) {
+            requestAnimationFrame(render);
+
+            const nowTime = performance.now();
+            const deltaTime = nowTime - lastTime;
+            lastTime = nowTime;
+            if (!isDragging) {
+                scene.rotation.y += deltaTime / 4000;
+            }
+        }
+
+        renderer.render(scene, camera);
+    }
+    render();
+
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
     await buildSceneFromSchematic(loadedSchematic, scene);
@@ -211,7 +271,7 @@ export async function renderSchematic(
         length: worldLength
     } = loadedSchematic;
     const cameraOffset = Math.max(worldWidth, worldLength) / 2 + 1;
-    const camera = new OrthographicCamera(
+    camera = new OrthographicCamera(
         -cameraOffset,
         cameraOffset,
         cameraOffset,
@@ -287,55 +347,6 @@ export async function renderSchematic(
             }
         }
     }
-
-    const renderer = new WebGLRenderer({
-        antialias,
-        canvas,
-        powerPreference: 'high-performance',
-        alpha: backgroundColor === 'transparent'
-    });
-    if (backgroundColor !== 'transparent') {
-        renderer.setClearColor(new Color(backgroundColor));
-    }
-    renderer.setSize(size, size);
-
-    canvas.addEventListener('mousedown', mousedownCallback);
-    canvas.addEventListener('wheel', mouseWheelCallback);
-    canvas.addEventListener('contextmenu', e => {
-        // right click is drag, don't let the menu get in the way.
-        e.preventDefault();
-        return false;
-    });
-    canvas.addEventListener('touchstart', touchdownCallback);
-
-    document.body.addEventListener('mousemove', mousemoveCallback);
-    document.body.addEventListener('mouseup', mouseupCallback);
-
-    document.body.addEventListener('touchmove', touchmoveCallback);
-    document.body.addEventListener('touchcancel', mouseupCallback);
-    document.body.addEventListener('touchend', mouseupCallback);
-
-    let lastTime = performance.now();
-    function render() {
-        if (hasDestroyed) {
-            return;
-        }
-
-        if (orbit) {
-            requestAnimationFrame(render);
-
-            const nowTime = performance.now();
-            const deltaTime = nowTime - lastTime;
-            lastTime = nowTime;
-            if (!isDragging) {
-                scene.rotation.y += deltaTime / 4000;
-            }
-        }
-
-        renderer.render(scene, camera);
-    }
-    render();
-    console.log(renderer.info.render);
 
     return {
         resize(size: number): void {

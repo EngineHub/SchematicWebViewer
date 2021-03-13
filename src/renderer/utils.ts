@@ -1,4 +1,4 @@
-import { Faces, Vector } from "./model/types";
+import { Faces, Vector } from './model/types';
 
 export function faceToFacingVector(face: Faces): Vector {
     switch (face) {
@@ -17,4 +17,29 @@ export function faceToFacingVector(face: Faces): Vector {
         default:
             return [0, 0, 0];
     }
+}
+
+export type Runner<R = any> = (...args: any[]) => Promise<R>;
+
+export async function runPromisePool<R>(
+    workers: Runner<R>[],
+    count = 25
+): Promise<R[]> {
+    if (workers.length === 0) {
+        return [];
+    }
+
+    const methods = workers.slice();
+    const results: R[] = [];
+
+    async function task(): Promise<void> {
+        while (methods.length > 0) {
+            const a = methods.pop()!;
+            const r = await a();
+            results.push(r);
+        }
+    }
+
+    await Promise.all(new Array(count).fill(undefined).map(() => task()));
+    return results.reverse();
 }
