@@ -69,67 +69,6 @@ export async function renderSchematic(
     let loaded = false;
 
     const loadingManager = new LoadingManager();
-    const resourceLoader = await getResourceLoader(jarUrl);
-    const modelLoader = await getModelLoader(resourceLoader, loadingManager);
-
-    const buildSceneFromSchematic = async (
-        schematic: Schematic,
-        scene: Scene
-    ) => {
-        const meshMap = new Map();
-
-        await runPromisePool(Array.from(schematic).map((pos) => async () => {
-            const { x, y, z } = pos;
-            const block = schematic.getBlock(pos);
-            if (!block) {
-                console.log(
-                    `Missing block ${x} ${y} ${z} ${JSON.stringify(schematic)}`
-                );
-                return;
-            }
-            if (INVISIBLE_BLOCKS.has(block.type)) {
-                return;
-            }
-
-            let anyVisible = false;
-
-            for (const face of POSSIBLE_FACES) {
-                const faceOffset = faceToFacingVector(face);
-                const offBlock = schematic.getBlock({
-                    x: x + faceOffset[0],
-                    y: y + faceOffset[1],
-                    z: z + faceOffset[2]
-                });
-
-                if (!offBlock || TRANSPARENT_BLOCKS.has(offBlock.type)) {
-                    anyVisible = true;
-                    break;
-                }
-            }
-
-            if (!anyVisible) {
-                return;
-            }
-
-            let mesh: Object3D = undefined;
-            if (meshMap.has(block)) {
-                mesh = meshMap.get(block).clone();
-            } else {
-                mesh = await modelLoader.getModel(block);
-                meshMap.set(block, mesh);
-            }
-            if (!mesh || mesh.children.length === 0) {
-                return;
-            }
-
-            mesh.position.x = -schematic.width / 2 + x + 0.5;
-            mesh.position.y = -schematic.height / 2 + y + 0.5;
-            mesh.position.z = -schematic.length / 2 + z + 0.5;
-            scene.add(mesh);
-        }), 25);
-
-        meshMap.clear();
-    };
 
     const mousedownCallback = (e: MouseEvent) => {
         isDragging = true;
@@ -199,7 +138,7 @@ export async function renderSchematic(
 
     const mouseWheelCallback = (e: WheelEvent) => {
         const delta = e.deltaY / 1000;
-        const orthCam = (camera as OrthographicCamera);
+        const orthCam = camera as OrthographicCamera;
 
         orthCam.zoom = Math.max(orthCam.zoom - delta, 0.01);
         orthCam.updateProjectionMatrix();
@@ -221,7 +160,7 @@ export async function renderSchematic(
     }
     renderer.setSize(size, size);
 
-    let camera: Camera = new PerspectiveCamera( 75, 1, 0.1, 50 );
+    let camera: Camera = new PerspectiveCamera(75, 1, 0.1, 50);
     camera.position.z = 30;
 
     canvas.addEventListener('mousedown', mousedownCallback);
@@ -241,8 +180,10 @@ export async function renderSchematic(
     document.body.addEventListener('touchend', mouseupCallback);
 
     const loadingScene = new Scene();
-    const loadingGeometry = new TorusGeometry( 5, 1, 16, 50 );
-    loadingScene.add(new Mesh(loadingGeometry, new MeshBasicMaterial({ color: 0x000000 })));
+    const loadingGeometry = new TorusGeometry(5, 1, 16, 50);
+    loadingScene.add(
+        new Mesh(loadingGeometry, new MeshBasicMaterial({ color: 0x000000 }))
+    );
 
     let lastTime = performance.now();
     function render() {
@@ -281,6 +222,74 @@ export async function renderSchematic(
 
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
+
+    const resourceLoader = await getResourceLoader(jarUrl);
+    const modelLoader = await getModelLoader(resourceLoader, loadingManager);
+
+    const buildSceneFromSchematic = async (
+        schematic: Schematic,
+        scene: Scene
+    ) => {
+        const meshMap = new Map();
+
+        await runPromisePool(
+            Array.from(schematic).map(pos => async () => {
+                const { x, y, z } = pos;
+                const block = schematic.getBlock(pos);
+                if (!block) {
+                    console.log(
+                        `Missing block ${x} ${y} ${z} ${JSON.stringify(
+                            schematic
+                        )}`
+                    );
+                    return;
+                }
+                if (INVISIBLE_BLOCKS.has(block.type)) {
+                    return;
+                }
+
+                let anyVisible = false;
+
+                for (const face of POSSIBLE_FACES) {
+                    const faceOffset = faceToFacingVector(face);
+                    const offBlock = schematic.getBlock({
+                        x: x + faceOffset[0],
+                        y: y + faceOffset[1],
+                        z: z + faceOffset[2]
+                    });
+
+                    if (!offBlock || TRANSPARENT_BLOCKS.has(offBlock.type)) {
+                        anyVisible = true;
+                        break;
+                    }
+                }
+
+                if (!anyVisible) {
+                    return;
+                }
+
+                let mesh: Object3D = undefined;
+                if (meshMap.has(block)) {
+                    mesh = meshMap.get(block).clone();
+                } else {
+                    mesh = await modelLoader.getModel(block);
+                    meshMap.set(block, mesh);
+                }
+                if (!mesh || mesh.children.length === 0) {
+                    return;
+                }
+
+                mesh.position.x = -schematic.width / 2 + x + 0.5;
+                mesh.position.y = -schematic.height / 2 + y + 0.5;
+                mesh.position.z = -schematic.length / 2 + z + 0.5;
+                scene.add(mesh);
+            }),
+            25
+        );
+
+        meshMap.clear();
+    };
+
     await buildSceneFromSchematic(loadedSchematic, scene);
     const {
         width: worldWidth,
