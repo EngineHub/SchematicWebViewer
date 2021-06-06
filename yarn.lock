@@ -1006,10 +1006,10 @@
     "@babel/helper-validator-identifier" "^7.14.0"
     to-fast-properties "^2.0.0"
 
-"@enginehub/schematicjs@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@enginehub/schematicjs/-/schematicjs-0.2.0.tgz#b527cc89102a7f3a79265e337c5f28e980d5b8c6"
-  integrity sha512-rtYvulpAPAvbDY/g3Zvbee7rxfo/d81UrbIAnGi87BMq8RVMDGHcNSQxAPuPLQqUmm9DlnykC40ppCKsIzovIg==
+"@enginehub/schematicjs@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@enginehub/schematicjs/-/schematicjs-0.2.1.tgz#a858808dbba5f602db128bfdc2e81dcd1ad12b86"
+  integrity sha512-Z+5UBXwt5SLe5tYoNs5aAwoscIWX9Cj9zi9EZZKAkcwT2oyCmg7ce7kSO6b0rdOstb4uBe8wBj3pP3wViKsP6g==
   dependencies:
     gzip-js "^0.3.2"
     nbt-ts "^1.3.3"

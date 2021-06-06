@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "2.2.3",
+    "version": "2.2.4",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/index.js",
     "files": [
@@ -23,7 +23,7 @@
     },
     "homepage": "https://github.com/EngineHub/SchematicWebViewer#readme",
     "dependencies": {
-        "@enginehub/schematicjs": "^0.2.0",
+        "@enginehub/schematicjs": "^0.2.1",
         "deepmerge": "^4.2.2",
         "gzip-js": "^0.3.2",
         "jszip": "^3.6.0",
