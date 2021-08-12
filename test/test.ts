@@ -7,23 +7,20 @@ const COMPLEX_SCHEM =
 const SIMPLE_SCHEM =
     'H4sIAAAAAAAAAF1OXUvDQBCc3GHTnIr/wZ8h2Aex4INFQbF+IGVNN8lieoHcgvrqH/Wn6J4KFedl2JndmQ2oruqON6RSe4RL6lmVF/QKwAeUv4LHwUYi1yM1epR0iGy+89jfqiSjaYXH4VZrR0pp9dQP9fNDisPL23FDfeJHZHiUNzwmGWK+c5icc2y1gwuYLlhpTUoe1XJ+0TSJ9fbT8Ge++zfff4dazBlL2ylcieokN59ajjnTbBdF4Rx2lrLORRX2rqXneVRR4RTyxi4mP3n5Q2v4MJ4Zv+MLMXi6PSsBAAA=';
 
+const CORS_ANYWHERE = 'https://cors-anywhere-eh.octyl.net/';
+
 window.addEventListener('load', () => {
     renderSchematic(document.querySelector('#main'), VILLAGE_SCHEM, {
         size: 500,
         renderArrow: false,
         renderBars: false,
-        jarUrl:
-            ['https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar']
+        corsBypassUrl: CORS_ANYWHERE
     });
 
-    renderSchematic(
-        document.querySelector('#second'),
-        SIMPLE_SCHEM,
-        {
-            size: 250,
-            jarUrl: ['https://corsanywhere.minidigger.me/https://launcher.mojang.com/v1/objects/1952d94a0784e7abda230aae6a1e8fc0522dba99/client.jar'],
-            renderArrow: false,
-            renderBars: false
-        }
-    );
+    renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
+        size: 250,
+        corsBypassUrl: CORS_ANYWHERE,
+        renderArrow: false,
+        renderBars: false
+    });
 });

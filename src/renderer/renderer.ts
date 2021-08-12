@@ -20,6 +20,7 @@ import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
 import NonOccludingBlocks from './nonOccluding.json';
+import DataVersionMap from '../dataVersionMap.json';
 import { POSSIBLE_FACES } from './model/types';
 import { faceToFacingVector, runPromisePool } from './utils';
 
@@ -50,7 +51,8 @@ export async function renderSchematic(
     canvas: HTMLCanvasElement,
     schematic: string,
     {
-        jarUrl,
+        corsBypassUrl,
+        resourcePacks,
         size,
         orbit = true,
         renderArrow = true,
@@ -223,7 +225,13 @@ export async function renderSchematic(
     const rootTag = parseNbt(schematic);
     const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
 
-    const resourceLoader = await getResourceLoader(jarUrl);
+    const dataVersion = loadedSchematic.dataVersion;
+    const jarUrl = DataVersionMap[dataVersion];
+
+    const resourceLoader = await getResourceLoader([
+        `${corsBypassUrl}${jarUrl}`,
+        ...(resourcePacks ?? [])
+    ]);
     const modelLoader = await getModelLoader(resourceLoader, loadingManager);
 
     const buildSceneFromSchematic = async (
