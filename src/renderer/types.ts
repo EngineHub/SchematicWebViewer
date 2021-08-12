@@ -5,7 +5,8 @@ export interface SchematicHandles {
 
 export interface SchematicRenderOptions {
     size: number;
-    jarUrl?: string | string[];
+    corsBypassUrl: string;
+    resourcePacks?: string[];
     renderBars?: boolean;
     renderArrow?: boolean;
     orbit?: boolean;
