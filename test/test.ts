@@ -17,10 +17,10 @@ window.addEventListener('load', () => {
         corsBypassUrl: CORS_ANYWHERE
     });
 
-    renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
-        size: 250,
-        corsBypassUrl: CORS_ANYWHERE,
-        renderArrow: false,
-        renderBars: false
-    });
+    // renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
+    //     size: 250,
+    //     corsBypassUrl: CORS_ANYWHERE,
+    //     renderArrow: false,
+    //     renderBars: false
+    // });
 });

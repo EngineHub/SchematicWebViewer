@@ -1029,11 +1029,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/three@^0.130.0":
-  version "0.130.0"
-  resolved "https://registry.yarnpkg.com/@types/three/-/three-0.130.0.tgz#f048f1fb73e789a2c0dfcc66a45ffcbf259a75f6"
-  integrity sha512-7MKKxlEjHoAGTBRxEcDOjO4OvOrvUM6xtyjPiubNcU6bRPNmjNaV/PI9tiaXkk8cauZ9FuRbdCV4g0rQod+FkQ==
-
 "@yarnpkg/lockfile@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@yarnpkg/lockfile/-/lockfile-1.1.0.tgz#e77a97fbd345b76d83245edcd17d393b1b41fb31"
@@ -1280,6 +1275,11 @@ babylon-walk@^1.0.2:
     babel-runtime "^6.11.6"
     babel-types "^6.15.0"
     lodash.clone "^4.5.0"
+
+babylonjs@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/babylonjs/-/babylonjs-4.2.0.tgz#8f0d957a726de4c065904b14c2f413f455145d38"
+  integrity sha512-4hniJzWRkV0tDTTYGEHPk1lnfWn0HIw7HOvNWPK0rpUIbJooyeD9E5uVyHnslDedt0mtrA7QZu4i2Cz1DEmSsA==
 
 balanced-match@^1.0.0:
   version "1.0.2"
@@ -5375,11 +5375,6 @@ terser@^5.6.1:
     commander "^2.20.0"
     source-map "~0.7.2"
     source-map-support "~0.5.19"
-
-three@^0.130.1:
-  version "0.130.1"
-  resolved "https://registry.yarnpkg.com/three/-/three-0.130.1.tgz#797588b2877ace31603bbbc864eb2e3022f0b3b4"
-  integrity sha512-OSPPKcGvFSiGkG3jFrwwC76PBV/ZSrGxpBbg28bW8s9GU8r/y2spNGtEXHEb/CVqo0Ctf5Lx2rVaxQZB6OasaA==
 
 through2@^2.0.0, through2@~2.0.3:
   version "2.0.5"

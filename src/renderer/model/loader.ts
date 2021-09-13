@@ -1,20 +1,17 @@
 import { Block } from '@enginehub/schematicjs';
-import deepmerge from 'deepmerge';
 import {
     Material,
-    TextureLoader,
-    Mesh,
     Texture,
-    NearestFilter,
-    Color,
-    NearestMipmapLinearFilter,
-    MathUtils,
-    MeshBasicMaterial,
-    Group,
-    BoxGeometry,
-    RepeatWrapping,
-    LoadingManager,
-} from 'three';
+    Scene,
+    StandardMaterial,
+    Mesh,
+    MeshBuilder,
+    MultiMaterial,
+    SubMesh,
+    Color4,
+    Vector3
+} from 'babylonjs';
+import deepmerge from 'deepmerge';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { TRANSPARENT_BLOCKS } from '../renderer';
 import { getBlockStateDefinition, getModel } from './parser';
@@ -25,47 +22,24 @@ import {
     Vector
 } from './types';
 
-const TINT_COLOR = new Color(0x91bd59);
-const WATER_COLOR = new Color(0x2439d6);
-const LAVA_COLOR = new Color(0xe85917);
-const BLANK_COLOR = new Color();
+const TINT_COLOR = new Color4(145 / 255, 189 / 255, 89 / 255, 1);
+const WATER_COLOR = new Color4(36 / 255, 57 / 255, 214 / 255, 1);
+const LAVA_COLOR = new Color4(232 / 255, 89 / 255, 23 / 255, 1);
+
+const DEG2RAD = Math.PI / 180;
 
 function normalize(input: number): number {
     return input / 16 - 0.5;
 }
 
-export async function getModelLoader(resourceLoader: ResourceLoader, loadingManager: LoadingManager) {
+export async function getModelLoader(resourceLoader: ResourceLoader) {
     const materialCache = new Map<string, Material>();
-    const loader = new TextureLoader(loadingManager);
-
-    async function loadTexture(tex: string): Promise<Texture | undefined> {
-        if (tex.startsWith('minecraft:')) {
-            tex = tex.substring('minecraft:'.length);
-        }
-        const blob = await resourceLoader.getResourceBlob(
-            `textures/${tex}.png`
-        );
-        if (blob === undefined) {
-            console.log(tex);
-            return undefined;
-        }
-        return await new Promise((resolve, reject) => {
-            loader.load(
-                blob,
-                texture => {
-                    resolve(texture);
-                },
-                () => {},
-                e => reject(e)
-            );
-        });
-    }
 
     async function getTextureMaterial(
         tex: string,
+        scene: Scene,
         rotation?: number,
         uv?: [number, number, number, number],
-        tintindex?: number,
         transparent?: boolean
     ): Promise<Material> {
         // Normalise values for better caching.
@@ -76,55 +50,60 @@ export async function getModelLoader(resourceLoader: ResourceLoader, loadingMana
             uv = undefined;
         }
 
-        const cacheKey = `${tex}_rot=${rotation}_uv=${uv}_tint=${tintindex}`;
+        const cacheKey = `${tex}_rot=${rotation}_uv=${uv}`;
 
         const cached = materialCache.get(cacheKey);
         if (cached) {
             return cached;
         }
 
-        const texture = await loadTexture(tex);
+        if (tex.startsWith('minecraft:')) {
+            tex = tex.substring('minecraft:'.length);
+        }
+        const blob = await resourceLoader.getResourceBlob(
+            `textures/${tex}.png`
+        );
+        if (blob === undefined) {
+            console.log(tex);
+            return undefined;
+        }
+
+        const texture = new Texture(
+            blob,
+            scene,
+            true,
+            true,
+            Texture.NEAREST_SAMPLINGMODE
+        );
+        texture.hasAlpha = transparent;
+
         if (rotation) {
-            texture.center.x = 0.5;
-            texture.center.y = 0.5;
-            texture.rotation = -rotation * MathUtils.DEG2RAD;
+            texture.uRotationCenter = 0.5;
+            texture.vRotationCenter = 0.5;
+            texture.vAng = -rotation * DEG2RAD;
         }
         if (uv) {
-            texture.offset.x = uv[0] / 16;
-            texture.offset.y = uv[1] / 16;
-            texture.repeat.x = (uv[2] - uv[0]) / 16;
-            texture.repeat.y = (uv[3] - uv[1]) / 16;
+            texture.uOffset = uv[0] / 16;
+            texture.vOffset = uv[1] / 16;
 
-            texture.wrapS = RepeatWrapping;
-            texture.wrapT = RepeatWrapping;
-        }
-        texture.magFilter = NearestFilter;
-        texture.minFilter = NearestMipmapLinearFilter;
+            texture.uScale = (uv[2] - uv[0]) / 16;
+            texture.vScale = (uv[3] - uv[1]) / 16;
 
-        let color: Color;
-        if (tintindex !== undefined) {
-            color = TINT_COLOR;
-        } else if (tex.startsWith('block/water_')) {
-            color = WATER_COLOR;
-        } else if (tex.startsWith('block/lava_')) {
-            color = LAVA_COLOR;
-        } else {
-            color = BLANK_COLOR;
+            texture.wrapU = 1;
+            texture.wrapV = 1;
         }
 
-        const mat = new MeshBasicMaterial({
-            map: texture,
-            color,
-            transparent: transparent || tex.includes('overlay'),
-            depthWrite: !transparent
-        });
+        const mat = new StandardMaterial(cacheKey, scene);
+        mat.diffuseTexture = texture;
+        mat.useAlphaFromDiffuseTexture = transparent;
+        mat.freeze();
 
         materialCache.set(cacheKey, mat);
         return mat;
     }
 
     return {
-        getModel: async (block: Block) => {
+        getModel: async (block: Block, scene: Scene) => {
             const blockState = await getBlockStateDefinition(
                 block.type,
                 resourceLoader
@@ -210,7 +189,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader, loadingMana
             }
 
             if (modelRefs.length > 0) {
-                const group = new Group();
+                const group = [];
                 for (const modelHolder of modelRefs) {
                     const model = await getModel(
                         modelHolder.model,
@@ -253,109 +232,145 @@ export async function getModelLoader(resourceLoader: ResourceLoader, loadingMana
                                 element.to[2] - element.from[2]
                             ];
 
-                            const materials = [];
-                            const geometry = new BoxGeometry(
-                                ...elementSize,
-                                1,
-                                1,
-                                1
-                            );
+                            const material = new MultiMaterial('', scene);
+                            const colours = [];
+                            let hasColor = false;
 
-                            // let index = -1;
                             for (const face of POSSIBLE_FACES) {
-                                // index++;
                                 if (!element.faces[face]) {
-                                    // for (
-                                    //     let i = geometry.faces.length - 1;
-                                    //     i >= 0;
-                                    //     i--
-                                    // ) {
-                                    //     if (
-                                    //         geometry.faces[i] &&
-                                    //         geometry.faces[i].materialIndex ===
-                                    //             index
-                                    //     ) {
-                                    //         geometry.faces.splice(i, 1);
-                                    //     }
-                                    // }
-                                    materials.push(undefined);
+                                    material.subMaterials.push(undefined);
+                                    colours.push(undefined);
                                     continue;
                                 }
                                 const faceData = element.faces[face];
+                                const tex = resolveTexture(faceData.texture);
 
-                                materials.push(
+                                material.subMaterials.push(
                                     await getTextureMaterial(
-                                        resolveTexture(faceData.texture),
+                                        tex,
+                                        scene,
                                         faceData.rotation,
                                         faceData.uv,
-                                        faceData.tintindex,
-                                        TRANSPARENT_BLOCKS.has(block.type)
+                                        TRANSPARENT_BLOCKS.has(block.type) ||
+                                            faceData.texture.includes('overlay')
                                     )
                                 );
+
+                                let color: Color4;
+                                if (faceData.tintindex !== undefined) {
+                                    color = TINT_COLOR;
+                                } else if (tex.startsWith('block/water_')) {
+                                    color = WATER_COLOR;
+                                } else if (tex.startsWith('block/lava_')) {
+                                    color = LAVA_COLOR;
+                                } else {
+                                    colours.push(undefined);
+                                    continue;
+                                }
+                                hasColor = true;
+                                colours.push(color);
                             }
 
-                            // if (geometry.faces.length === 0) {
-                            //     geometry.dispose();
-                            //     continue;
-                            // }
+                            const box = MeshBuilder.CreateBox('box', {
+                                width: elementSize[0],
+                                height: elementSize[1],
+                                depth: elementSize[2],
+                                wrap: true,
+                                faceColors: hasColor ? colours : undefined
+                            });
 
-                            geometry.translate(
-                                element.from[0] + elementSize[0] / 2,
-                                element.from[1] + elementSize[1] / 2,
-                                element.from[2] + elementSize[2] / 2
-                            );
+                            box.subMeshes = [];
+                            const verticesCount = box.getTotalVertices();
+                            for (let i = 0; i < POSSIBLE_FACES.length; i++) {
+                                if (!material.subMaterials[i]) {
+                                    continue;
+                                }
+                                new SubMesh(i, i, verticesCount, i * 6, 6, box);
+                            }
+
+                            // Remove the undefined ones.
+                            material.subMaterials =
+                                material.subMaterials.filter(mat => mat);
+
+                            material.freeze();
+                            box.material = material;
 
                             if (element.rotation) {
-                                geometry.translate(
-                                    -normalize(element.rotation.origin[0]),
-                                    -normalize(element.rotation.origin[1]),
-                                    -normalize(element.rotation.origin[2])
+                                box.locallyTranslate(
+                                    new Vector3(
+                                        -normalize(element.rotation.origin[0]),
+                                        -normalize(element.rotation.origin[1]),
+                                        -normalize(element.rotation.origin[2])
+                                    )
                                 );
 
                                 switch (element.rotation.axis) {
                                     case 'y':
-                                        geometry.rotateY(
-                                            -element.rotation.angle *
-                                                MathUtils.DEG2RAD
+                                        box.addRotation(
+                                            0,
+                                            -element.rotation.angle * DEG2RAD,
+                                            0
                                         );
                                         break;
                                     case 'x':
-                                        geometry.rotateX(
-                                            element.rotation.angle *
-                                                MathUtils.DEG2RAD
+                                        box.addRotation(
+                                            element.rotation.angle * DEG2RAD,
+                                            0,
+                                            0
                                         );
                                         break;
                                     case 'z':
-                                        geometry.rotateZ(
-                                            element.rotation.angle *
-                                                MathUtils.DEG2RAD
+                                        box.addRotation(
+                                            0,
+                                            0,
+                                            element.rotation.angle * DEG2RAD
                                         );
                                         break;
                                 }
 
-                                geometry.translate(
-                                    normalize(element.rotation.origin[0]),
-                                    normalize(element.rotation.origin[1]),
-                                    normalize(element.rotation.origin[2])
+                                box.locallyTranslate(
+                                    new Vector3(
+                                        normalize(element.rotation.origin[0]),
+                                        normalize(element.rotation.origin[1]),
+                                        normalize(element.rotation.origin[2])
+                                    )
                                 );
                             }
 
                             if (modelHolder.x) {
-                                geometry.rotateX(
-                                    -MathUtils.DEG2RAD * modelHolder.x
-                                );
+                                box.addRotation(-DEG2RAD * modelHolder.x, 0, 0);
                             }
                             if (modelHolder.y) {
-                                geometry.rotateY(
-                                    -MathUtils.DEG2RAD * modelHolder.y
-                                );
+                                box.addRotation(0, -DEG2RAD * modelHolder.y, 0);
                             }
 
-                            group.add(new Mesh(geometry, materials));
+                            box.setAbsolutePosition(
+                                box.absolutePosition.add(
+                                    new Vector3(
+                                        element.from[0] + elementSize[0] / 2,
+                                        element.from[1] + elementSize[1] / 2,
+                                        element.from[2] + elementSize[2] / 2
+                                    )
+                                )
+                            );
+
+                            group.push(box);
                         }
                     }
                 }
-                return group;
+
+                if (group.length > 0) {
+                    return Mesh.MergeMeshes(
+                        group,
+                        true,
+                        false,
+                        null,
+                        false,
+                        true
+                    );
+                } else {
+                    return undefined;
+                }
             } else {
                 console.log(blockState);
                 return undefined;
