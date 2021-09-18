@@ -6,9 +6,10 @@ import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
 import NonOccludingBlocks from './nonOccluding.json';
+import TransparentBlocks from './transparent.json';
 import DataVersionMap from '../dataVersionMap.json';
 import { POSSIBLE_FACES } from './model/types';
-import { faceToFacingVector, runPromisePool } from './utils';
+import { faceToFacingVector } from './utils';
 import {
     Engine,
     Scene,
@@ -38,6 +39,11 @@ const INVISIBLE_BLOCKS = new Set([
 ]);
 
 export const TRANSPARENT_BLOCKS = new Set([
+    ...INVISIBLE_BLOCKS,
+    ...TransparentBlocks
+]);
+
+export const NON_OCCLUDING_BLOCKS = new Set([
     ...INVISIBLE_BLOCKS,
     ...NonOccludingBlocks
 ]);
@@ -114,71 +120,57 @@ export async function renderSchematic(
         schematic: Schematic,
         scene: Scene
     ) => {
-        const meshMap = new Map<string, Mesh>();
+        for (const pos of schematic) {
+            const { x, y, z } = pos;
+            const block = schematic.getBlock(pos);
 
-        await runPromisePool(
-            Array.from(schematic).map(pos => async () => {
-                const { x, y, z } = pos;
-                const block = schematic.getBlock(pos);
-                if (!block) {
-                    console.log(
-                        `Missing block ${x} ${y} ${z} ${JSON.stringify(
-                            schematic
-                        )}`
-                    );
-                    return;
+            if (!block) {
+                console.log(
+                    `Missing block ${x} ${y} ${z} ${JSON.stringify(
+                        schematic
+                    )}`
+                );
+                continue;
+            }
+            if (INVISIBLE_BLOCKS.has(block.type)) {
+                continue;
+            }
+
+            let anyVisible = false;
+
+            for (const face of POSSIBLE_FACES) {
+                const faceOffset = faceToFacingVector(face);
+                const offBlock = schematic.getBlock({
+                    x: x + faceOffset[0],
+                    y: y + faceOffset[1],
+                    z: z + faceOffset[2]
+                });
+
+                if (!offBlock || NON_OCCLUDING_BLOCKS.has(offBlock.type)) {
+                    anyVisible = true;
+                    break;
                 }
-                if (INVISIBLE_BLOCKS.has(block.type)) {
-                    return;
-                }
+            }
 
-                let anyVisible = false;
+            if (!anyVisible) {
+                continue;
+            }
 
-                for (const face of POSSIBLE_FACES) {
-                    const faceOffset = faceToFacingVector(face);
-                    const offBlock = schematic.getBlock({
-                        x: x + faceOffset[0],
-                        y: y + faceOffset[1],
-                        z: z + faceOffset[2]
-                    });
+            const mesh = await modelLoader.getModel(block, scene);
+            if (!mesh) {
+                continue;
+            }
 
-                    if (!offBlock || TRANSPARENT_BLOCKS.has(offBlock.type)) {
-                        anyVisible = true;
-                        break;
-                    }
-                }
+            mesh.position.x = -schematic.width / 2 + x + 0.5;
+            mesh.position.y = -schematic.height / 2 + y + 0.5;
+            mesh.position.z = -schematic.length / 2 + z + 0.5;
+            scene.addMesh(mesh);
 
-                if (!anyVisible) {
-                    return;
-                }
+            mesh.freezeWorldMatrix();
+        }
 
-                const blockKey = JSON.stringify(block);
-
-                if (!meshMap.has(blockKey)) {
-                    const rootMesh = await modelLoader.getModel(block, scene);
-                    if (!rootMesh) {
-                        return;
-                    }
-                    rootMesh.isVisible = false;
-                    meshMap.set(blockKey, rootMesh);
-                }
-
-                // Clone instead of instance for proper transparency support.
-                const mesh = meshMap.get(blockKey).clone();
-                mesh.isVisible = true;
-
-                mesh.position.x = -schematic.width / 2 + x + 0.5;
-                mesh.position.y = -schematic.height / 2 + y + 0.5;
-                mesh.position.z = -schematic.length / 2 + z + 0.5;
-                scene.addMesh(mesh);
-
-                mesh.freezeWorldMatrix();
-            }),
-            25
-        );
-
-        meshMap.clear();
         scene.createOrUpdateSelectionOctree();
+        resourceLoader.clearCache();
     };
 
     await buildSceneFromSchematic(loadedSchematic, scene);
@@ -261,6 +253,7 @@ export async function renderSchematic(
             engine.setSize(size, size);
         },
         destroy() {
+            engine.dispose();
             hasDestroyed = true;
         }
     };

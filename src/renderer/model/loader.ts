@@ -71,11 +71,12 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         const texture = new Texture(
             blob,
             scene,
-            true,
+            false,
             true,
             Texture.NEAREST_SAMPLINGMODE
         );
         texture.hasAlpha = transparent;
+        texture.isBlocking = false;
 
         if (rotation) {
             texture.uRotationCenter = 0.5;
@@ -116,7 +117,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
                 if (Array.isArray(variant)) {
                     variant =
-                        variant[Math.floor(Math.random() & variant.length)];
+                        variant[Math.floor(Math.random() * variant.length)];
                 }
 
                 modelRefs.push(variant);
@@ -140,7 +141,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
                 if (Array.isArray(variant)) {
                     variant =
-                        variant[Math.floor(Math.random() & variant.length)];
+                        variant[Math.floor(Math.random() * variant.length)];
                 }
 
                 modelRefs.push(variant);
@@ -181,7 +182,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
                     if (Array.isArray(models)) {
                         models =
-                            models[Math.floor(Math.random() & models.length)];
+                            models[Math.floor(Math.random() * models.length)];
                     }
 
                     modelRefs.push(models);
@@ -232,20 +233,24 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 element.to[2] - element.from[2]
                             ];
 
-                            const material = new MultiMaterial('', scene);
+                            const material = new MultiMaterial(
+                                block.type,
+                                scene
+                            );
                             const colours = [];
                             let hasColor = false;
+                            const subMaterials = [];
 
                             for (const face of POSSIBLE_FACES) {
                                 if (!element.faces[face]) {
-                                    material.subMaterials.push(undefined);
+                                    subMaterials.push(undefined);
                                     colours.push(undefined);
                                     continue;
                                 }
                                 const faceData = element.faces[face];
                                 const tex = resolveTexture(faceData.texture);
 
-                                material.subMaterials.push(
+                                subMaterials.push(
                                     await getTextureMaterial(
                                         tex,
                                         scene,
@@ -282,15 +287,16 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             box.subMeshes = [];
                             const verticesCount = box.getTotalVertices();
                             for (let i = 0; i < POSSIBLE_FACES.length; i++) {
-                                if (!material.subMaterials[i]) {
+                                if (!subMaterials[i]) {
                                     continue;
                                 }
                                 new SubMesh(i, i, verticesCount, i * 6, 6, box);
                             }
 
                             // Remove the undefined ones.
-                            material.subMaterials =
-                                material.subMaterials.filter(mat => mat);
+                            material.subMaterials = subMaterials.filter(
+                                mat => mat
+                            );
 
                             material.freeze();
                             box.material = material;

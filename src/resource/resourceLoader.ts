@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 export interface ResourceLoader {
     getResourceBlob: (name: string) => Promise<string> | undefined;
     getResourceString: (name: string) => Promise<string> | undefined;
+    clearCache: () => void;
 }
 
 let zipPromise: Promise<JSZip | JSZip[]> = undefined;
@@ -92,8 +93,14 @@ export async function getResourceLoader(
         }
     };
 
+    const clearCache = () => {
+        stringCache.clear();
+        blobCache.clear();
+    }
+
     return {
         getResourceBlob,
-        getResourceString
+        getResourceString,
+        clearCache
     };
 }
