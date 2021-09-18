@@ -4,7 +4,6 @@ import {
     Texture,
     Scene,
     StandardMaterial,
-    Mesh,
     MeshBuilder,
     MultiMaterial,
     SubMesh,
@@ -233,10 +232,6 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 element.to[2] - element.from[2]
                             ];
 
-                            const material = new MultiMaterial(
-                                block.type,
-                                scene
-                            );
                             const colours = [];
                             let hasColor = false;
                             const subMaterials = [];
@@ -284,14 +279,31 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 faceColors: hasColor ? colours : undefined
                             });
 
-                            box.subMeshes = [];
+                            const subMeshes = [];
                             const verticesCount = box.getTotalVertices();
                             for (let i = 0; i < POSSIBLE_FACES.length; i++) {
                                 if (!subMaterials[i]) {
                                     continue;
                                 }
-                                new SubMesh(i, i, verticesCount, i * 6, 6, box);
+                                const subMesh = new SubMesh(
+                                    subMeshes.length,
+                                    i,
+                                    verticesCount,
+                                    i * 6,
+                                    6,
+                                    box,
+                                    undefined,
+                                    true,
+                                    false
+                                );
+                                subMeshes.push(subMesh);
                             }
+                            box.subMeshes = subMeshes;
+
+                            const material = new MultiMaterial(
+                                block.type,
+                                scene
+                            );
 
                             // Remove the undefined ones.
                             material.subMaterials = subMaterials.filter(
@@ -312,25 +324,16 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
                                 switch (element.rotation.axis) {
                                     case 'y':
-                                        box.addRotation(
-                                            0,
-                                            -element.rotation.angle * DEG2RAD,
-                                            0
-                                        );
+                                        box.rotation.y +=
+                                            -element.rotation.angle * DEG2RAD;
                                         break;
                                     case 'x':
-                                        box.addRotation(
-                                            element.rotation.angle * DEG2RAD,
-                                            0,
-                                            0
-                                        );
+                                        box.rotation.x +=
+                                            element.rotation.angle * DEG2RAD;
                                         break;
                                     case 'z':
-                                        box.addRotation(
-                                            0,
-                                            0,
-                                            element.rotation.angle * DEG2RAD
-                                        );
+                                        box.rotation.z +=
+                                            element.rotation.angle * DEG2RAD;
                                         break;
                                 }
 
@@ -344,10 +347,10 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             }
 
                             if (modelHolder.x) {
-                                box.addRotation(-DEG2RAD * modelHolder.x, 0, 0);
+                                box.rotation.x += -DEG2RAD * modelHolder.x;
                             }
                             if (modelHolder.y) {
-                                box.addRotation(0, -DEG2RAD * modelHolder.y, 0);
+                                box.rotation.y += -DEG2RAD * modelHolder.y;
                             }
 
                             box.setAbsolutePosition(
@@ -365,21 +368,11 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                     }
                 }
 
-                if (group.length > 0) {
-                    return Mesh.MergeMeshes(
-                        group,
-                        true,
-                        false,
-                        null,
-                        false,
-                        true
-                    );
-                } else {
-                    return undefined;
-                }
+                // We cannot merge these meshes as we lose independent face colours.
+                return group;
             } else {
                 console.log(blockState);
-                return undefined;
+                return [];
             }
         }
     };

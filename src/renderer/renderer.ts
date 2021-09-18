@@ -156,17 +156,19 @@ export async function renderSchematic(
                 continue;
             }
 
-            const mesh = await modelLoader.getModel(block, scene);
-            if (!mesh) {
-                continue;
+            const meshes = await modelLoader.getModel(block, scene);
+            for (const mesh of meshes) {
+                if (!mesh) {
+                    continue;
+                }
+
+                mesh.position.x += -schematic.width / 2 + x;
+                mesh.position.y += -schematic.height / 2 + y;
+                mesh.position.z += -schematic.length / 2 + z;
+                scene.addMesh(mesh);
+
+                mesh.freezeWorldMatrix();
             }
-
-            mesh.position.x = -schematic.width / 2 + x + 0.5;
-            mesh.position.y = -schematic.height / 2 + y + 0.5;
-            mesh.position.z = -schematic.length / 2 + z + 0.5;
-            scene.addMesh(mesh);
-
-            mesh.freezeWorldMatrix();
         }
 
         scene.createOrUpdateSelectionOctree();

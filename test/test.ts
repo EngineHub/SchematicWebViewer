@@ -10,7 +10,7 @@ const SIMPLE_SCHEM =
 const CORS_ANYWHERE = 'https://cors-anywhere-eh.octyl.net/';
 
 window.addEventListener('load', () => {
-    renderSchematic(document.querySelector('#main'), VILLAGE_SCHEM, {
+    renderSchematic(document.querySelector('#main'), COMPLEX_SCHEM, {
         size: 500,
         renderArrow: false,
         renderBars: false,
