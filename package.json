@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "3.0.0",
+    "version": "4.0.0-alpha.0",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/index.js",
     "files": [
@@ -11,7 +11,9 @@
         "build": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "parcel test/test.html --port 3000 --host 0.0.0.0",
-        "generateDV": "node scripts/generateVersionManifest.js"
+        "generateDV": "node scripts/generateVersionManifest.js",
+        "type-check": "tsc --noEmit",
+        "lint": "eslint --config ./.eslintrc.js --ext .js,.ts src/"
     },
     "repository": {
         "type": "git",
@@ -35,11 +37,17 @@
     },
     "devDependencies": {
         "@types/gzip-js": "^0.3.3",
+        "@typescript-eslint/eslint-plugin": "^4.31.1",
+        "@typescript-eslint/parser": "^4.31.1",
+        "eslint": "^7.32.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
         "got": "^11.8.2",
         "parcel-bundler": "1.12.5",
-        "prettier": "^2.3.2",
+        "prettier": "^2.4.1",
+        "prettier-eslint": "^13.0.0",
         "ts-loader": "^9.2.5",
-        "typescript": "^4.3.5"
+        "typescript": "^4.4.3"
     },
     "browserslist": [
         "last 1 Chrome version"

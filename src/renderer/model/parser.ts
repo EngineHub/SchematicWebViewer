@@ -23,7 +23,7 @@ export async function loadModel(
     ) as BlockModel;
 
     if (model.parent) {
-        let parent = await loadModel(model.parent, resourceLoader);
+        const parent = await loadModel(model.parent, resourceLoader);
         if (model['elements'] && parent['elements']) {
             delete parent['elements'];
         }
