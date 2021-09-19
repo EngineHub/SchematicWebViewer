@@ -33,7 +33,7 @@ The final argument is an options object that allows configuring various settings
 
 ```typescript
 interface SchematicRenderOptions {
-    size: string; // The size of the canvas viewport
+    size?: number; // Force the size of the canvas viewport, otherwise uses canvas size
     corsBypassUrl: string; // A url of a cors-anywhere instance to allow access to MC server jars
     resourcePacks?: string[]; // A list of resource pack URLs in priority order
     renderBars?: boolean; // Whether a grid should be rendered

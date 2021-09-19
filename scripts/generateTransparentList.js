@@ -15,7 +15,7 @@ async function doTheFilter() {
         )
         .map(bl => bl.id.replace('minecraft:', ''));
     const transparent = data
-        .filter(bl => bl.material.opaque === false)
+        .filter(bl => bl.material.opaque === false || bl.id.includes('door'))
         .map(bl => bl.id.replace('minecraft:', ''));
     await fs.writeFile('nonOccluding.json', JSON.stringify(nonOccluding));
     await fs.writeFile('transparent.json', JSON.stringify(transparent));

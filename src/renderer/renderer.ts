@@ -16,8 +16,8 @@ import {
     Vector3,
     ArcRotateCamera,
     HemisphericLight,
-    Mesh,
-    Color3
+    Color3,
+    Color4,
 } from 'babylonjs';
 
 function parseNbt(nbt: string): Tag {
@@ -59,23 +59,20 @@ export async function renderSchematic(
         renderArrow = true,
         renderBars = true,
         antialias = false,
-        backgroundColor = 0xffffff,
+        backgroundColor = 0xffffff
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const engine = new Engine(canvas, antialias, {
-        preserveDrawingBuffer: true,
-        stencil: true,
-        alpha: backgroundColor === 'transparent',
-        powerPreference: 'high-performance',
+        alpha: backgroundColor !== 'transparent',
+        powerPreference: 'high-performance'
     });
 
     const scene = new Scene(engine);
     let hasDestroyed = false;
 
-    // if (backgroundColor !== 'transparent') {
-    //     renderer.setClearColor(new Color(backgroundColor));
-    // }
-    engine.setSize(size, size);
+    if (size) {
+        engine.setSize(size, size);
+    }
 
     const camera = new ArcRotateCamera(
         'camera',
@@ -85,10 +82,18 @@ export async function renderSchematic(
         new Vector3(0, 0, 0),
         scene
     );
-    camera.attachControl(canvas, true);
+    camera.wheelPrecision = 50;
 
     const light = new HemisphericLight('light1', new Vector3(1, 1, 0), scene);
     light.specular = new Color3(0, 0, 0);
+    scene.ambientColor = new Color3(0.5, 0.5, 0.5);
+    if (backgroundColor !== 'transparent') {
+        scene.clearColor = Color4.FromHexString(
+            `#${backgroundColor.toString(16)}FF`
+        );
+    } else {
+        scene.clearColor = new Color4(0, 0, 0, 0);
+    }
 
     canvas.addEventListener('contextmenu', e => {
         // right click is drag, don't let the menu get in the way.
@@ -126,9 +131,7 @@ export async function renderSchematic(
 
             if (!block) {
                 console.log(
-                    `Missing block ${x} ${y} ${z} ${JSON.stringify(
-                        schematic
-                    )}`
+                    `Missing block ${x} ${y} ${z} ${JSON.stringify(schematic)}`
                 );
                 continue;
             }
@@ -162,9 +165,9 @@ export async function renderSchematic(
                     continue;
                 }
 
-                mesh.position.x += -schematic.width / 2 + x;
-                mesh.position.y += -schematic.height / 2 + y;
-                mesh.position.z += -schematic.length / 2 + z;
+                mesh.position.x += -schematic.width / 2 + x + 0.5;
+                mesh.position.y += -schematic.height / 2 + y + 0.5;
+                mesh.position.z += -schematic.length / 2 + z + 0.5;
                 scene.addMesh(mesh);
 
                 mesh.freezeWorldMatrix();
@@ -173,6 +176,7 @@ export async function renderSchematic(
 
         scene.createOrUpdateSelectionOctree();
         resourceLoader.clearCache();
+        modelLoader.clearCache();
     };
 
     await buildSceneFromSchematic(loadedSchematic, scene);
@@ -182,73 +186,15 @@ export async function renderSchematic(
         length: worldLength
     } = loadedSchematic;
 
-    const cameraOffset = Math.max(worldWidth, worldLength) / 2 + 1;
+    const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
     camera.radius = cameraOffset;
+    camera.attachControl(canvas, true);
 
-    // if (renderArrow) {
-    //     const arrowMaterial = new MeshBasicMaterial({
-    //         color: new Color(0x000000)
-    //     });
-    //     const arrowGeometry = new CylinderGeometry(
-    //         cameraOffset / 4,
-    //         cameraOffset / 4,
-    //         cameraOffset / 200,
-    //         3,
-    //         1,
-    //         false
-    //     );
-    //     const arrowMesh = new Mesh(arrowGeometry, arrowMaterial);
-    //     arrowMesh.position.z = cameraOffset - 0.5;
-    //     scene.add(arrowMesh);
-    // }
-
-    // if (renderBars) {
-    //     const gridGeom = new CylinderGeometry(
-    //         cameraOffset / 400,
-    //         cameraOffset / 400,
-    //         1,
-    //         3,
-    //         1,
-    //         false
-    //     );
-
-    //     const gridMaterial = new MeshBasicMaterial({
-    //         color: new Color(0x000000),
-    //         opacity: 0.2,
-    //         transparent: true
-    //     });
-
-    //     // generate a 3d grid
-    //     for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
-    //         for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
-    //             const barMesh = new Mesh(gridGeom, gridMaterial);
-    //             barMesh.scale.y = worldLength * 2;
-    //             barMesh.rotation.x = Math.PI / 2;
-    //             barMesh.position.x = x;
-    //             barMesh.position.y = y;
-    //             scene.add(barMesh);
-    //         }
-    //     }
-    //     for (let z = -worldLength / 2; z <= worldLength / 2; z++) {
-    //         for (let y = -worldHeight / 2; y <= worldHeight / 2; y++) {
-    //             const barMesh = new Mesh(gridGeom, gridMaterial);
-    //             barMesh.scale.y = worldWidth * 2;
-    //             barMesh.rotation.z = Math.PI / 2;
-    //             barMesh.position.z = z;
-    //             barMesh.position.y = y;
-    //             scene.add(barMesh);
-    //         }
-    //     }
-    //     for (let x = -worldWidth / 2; x <= worldWidth / 2; x++) {
-    //         for (let z = -worldLength / 2; z <= worldLength / 2; z++) {
-    //             const barMesh = new Mesh(gridGeom, gridMaterial);
-    //             barMesh.scale.y = worldHeight * 2;
-    //             barMesh.position.x = x;
-    //             barMesh.position.z = z;
-    //             scene.add(barMesh);
-    //         }
-    //     }
-    // }
+    if (orbit) {
+        scene.registerBeforeRender(() => {
+            camera.alpha += 0.02;
+        });
+    }
 
     return {
         resize(size: number): void {

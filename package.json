@@ -25,7 +25,7 @@
     "homepage": "https://github.com/EngineHub/SchematicWebViewer#readme",
     "dependencies": {
         "@enginehub/schematicjs": "^0.3.1",
-        "babylonjs": "^4.2.0",
+        "babylonjs": "^5.0.0-alpha.45",
         "deepmerge": "^4.2.2",
         "gzip-js": "^0.3.2",
         "jszip": "^3.7.1",

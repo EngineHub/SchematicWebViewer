@@ -4,7 +4,7 @@ export interface SchematicHandles {
 }
 
 export interface SchematicRenderOptions {
-    size: number;
+    size?: number;
     corsBypassUrl: string;
     resourcePacks?: string[];
     renderBars?: boolean;

@@ -8,7 +8,10 @@ import {
     MultiMaterial,
     SubMesh,
     Color4,
-    Vector3
+    Vector3,
+    Axis,
+    Space,
+    Color3
 } from 'babylonjs';
 import deepmerge from 'deepmerge';
 import { ResourceLoader } from '../../resource/resourceLoader';
@@ -24,6 +27,7 @@ import {
 const TINT_COLOR = new Color4(145 / 255, 189 / 255, 89 / 255, 1);
 const WATER_COLOR = new Color4(36 / 255, 57 / 255, 214 / 255, 1);
 const LAVA_COLOR = new Color4(232 / 255, 89 / 255, 23 / 255, 1);
+const AMBIENT_LIGHT = new Color3(0.5, 0.5, 0.5);
 
 const DEG2RAD = Math.PI / 180;
 
@@ -33,6 +37,10 @@ function normalize(input: number): number {
 
 export async function getModelLoader(resourceLoader: ResourceLoader) {
     const materialCache = new Map<string, Material>();
+
+    const clearCache = () => {
+        materialCache.clear();
+    }
 
     async function getTextureMaterial(
         tex: string,
@@ -51,6 +59,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
 
         const cacheKey = `${tex}_rot=${rotation}_uv=${uv}`;
 
+        // TODO - Determine if there's a better way to handle this other than manually caching.
         const cached = materialCache.get(cacheKey);
         if (cached) {
             return cached;
@@ -72,30 +81,31 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
             scene,
             false,
             true,
-            Texture.NEAREST_SAMPLINGMODE
+            Texture.NEAREST_NEAREST_MIPNEAREST
         );
         texture.hasAlpha = transparent;
         texture.isBlocking = false;
 
         if (rotation) {
-            texture.uRotationCenter = 0.5;
-            texture.vRotationCenter = 0.5;
-            texture.vAng = -rotation * DEG2RAD;
+            texture.wAng = rotation * DEG2RAD;
         }
         if (uv) {
+            // MC uses x1, y1, x2, y2 coords - ensure that Babylon handles this
             texture.uOffset = uv[0] / 16;
             texture.vOffset = uv[1] / 16;
 
             texture.uScale = (uv[2] - uv[0]) / 16;
             texture.vScale = (uv[3] - uv[1]) / 16;
 
-            texture.wrapU = 1;
-            texture.wrapV = 1;
+            texture.wrapU = Texture.WRAP_ADDRESSMODE;
+            texture.wrapV = Texture.WRAP_ADDRESSMODE;
         }
 
         const mat = new StandardMaterial(cacheKey, scene);
         mat.diffuseTexture = texture;
         mat.useAlphaFromDiffuseTexture = transparent;
+        mat.ambientColor = AMBIENT_LIGHT;
+        mat.disableDepthWrite = transparent;
         mat.freeze();
 
         materialCache.set(cacheKey, mat);
@@ -103,6 +113,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
     }
 
     return {
+        clearCache,
         getModel: async (block: Block, scene: Scene) => {
             const blockState = await getBlockStateDefinition(
                 block.type,
@@ -225,6 +236,12 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 normalize
                             ) as Vector;
                             element.to = element.to.map(normalize) as Vector;
+                            if (element.rotation) {
+                                element.rotation.origin =
+                                    element.rotation.origin.map(
+                                        normalize
+                                    ) as Vector;
+                            }
 
                             const elementSize = [
                                 element.to[0] - element.from[0],
@@ -272,9 +289,9 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             }
 
                             const box = MeshBuilder.CreateBox('box', {
-                                width: elementSize[0],
-                                height: elementSize[1],
-                                depth: elementSize[2],
+                                width: elementSize[0] || 0.0001,
+                                height: elementSize[1] || 0.0001,
+                                depth: elementSize[2] || 0.0001,
                                 wrap: true,
                                 faceColors: hasColor ? colours : undefined
                             });
@@ -285,6 +302,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                                 if (!subMaterials[i]) {
                                     continue;
                                 }
+                                // Only create the submesh if it has a material.
                                 const subMesh = new SubMesh(
                                     subMeshes.length,
                                     i,
@@ -300,6 +318,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             }
                             box.subMeshes = subMeshes;
 
+                            // TODO - Validate if material names must be unique.
                             const material = new MultiMaterial(
                                 block.type,
                                 scene
@@ -314,54 +333,69 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                             box.material = material;
 
                             if (element.rotation) {
-                                box.locallyTranslate(
+                                box.setPivotPoint(
                                     new Vector3(
-                                        -normalize(element.rotation.origin[0]),
-                                        -normalize(element.rotation.origin[1]),
-                                        -normalize(element.rotation.origin[2])
-                                    )
+                                        element.rotation.origin[0],
+                                        element.rotation.origin[1],
+                                        element.rotation.origin[2]
+                                    ),
+                                    Space.WORLD
                                 );
 
                                 switch (element.rotation.axis) {
                                     case 'y':
-                                        box.rotation.y +=
-                                            -element.rotation.angle * DEG2RAD;
+                                        box.rotate(
+                                            Axis.Y,
+                                            element.rotation.angle * -DEG2RAD,
+                                            Space.WORLD
+                                        );
                                         break;
                                     case 'x':
-                                        box.rotation.x +=
-                                            element.rotation.angle * DEG2RAD;
+                                        box.rotate(
+                                            Axis.X,
+                                            element.rotation.angle * DEG2RAD,
+                                            Space.WORLD
+                                        );
                                         break;
                                     case 'z':
-                                        box.rotation.z +=
-                                            element.rotation.angle * DEG2RAD;
+                                        box.rotate(
+                                            Axis.Z,
+                                            element.rotation.angle * DEG2RAD,
+                                            Space.WORLD
+                                        );
                                         break;
                                 }
 
-                                box.locallyTranslate(
-                                    new Vector3(
-                                        normalize(element.rotation.origin[0]),
-                                        normalize(element.rotation.origin[1]),
-                                        normalize(element.rotation.origin[2])
-                                    )
-                                );
+                                box.setPivotPoint(new Vector3(0, 0, 0));
                             }
 
                             if (modelHolder.x) {
-                                box.rotation.x += -DEG2RAD * modelHolder.x;
+                                box.rotate(
+                                    Axis.X,
+                                    -DEG2RAD * modelHolder.x,
+                                    Space.WORLD
+                                );
                             }
                             if (modelHolder.y) {
-                                box.rotation.y += -DEG2RAD * modelHolder.y;
+                                box.rotate(
+                                    Axis.Y,
+                                    -DEG2RAD * modelHolder.y,
+                                    Space.WORLD
+                                );
                             }
 
-                            box.setAbsolutePosition(
-                                box.absolutePosition.add(
-                                    new Vector3(
-                                        element.from[0] + elementSize[0] / 2,
-                                        element.from[1] + elementSize[1] / 2,
-                                        element.from[2] + elementSize[2] / 2
-                                    )
+                            box.translate(
+                                Axis.X,
+                                element.from[0] + elementSize[0] / 2
+                            )
+                                .translate(
+                                    Axis.Y,
+                                    element.from[1] + elementSize[1] / 2
                                 )
-                            );
+                                .translate(
+                                    Axis.Z,
+                                    element.from[2] + elementSize[2] / 2
+                                );
 
                             group.push(box);
                         }
