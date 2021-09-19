@@ -1,15 +1,16 @@
-import { decode, Tag } from 'nbt-ts';
-import { unzip } from 'gzip-js';
 import { loadSchematic, Schematic } from '@enginehub/schematicjs';
 import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
-import NonOccludingBlocks from './nonOccluding.json';
-import TransparentBlocks from './transparent.json';
 import DataVersionMap from '../dataVersionMap.json';
 import { POSSIBLE_FACES } from './model/types';
-import { faceToFacingVector } from './utils';
+import {
+    faceToFacingVector,
+    INVISIBLE_BLOCKS,
+    NON_OCCLUDING_BLOCKS,
+    parseNbt
+} from './utils';
 import {
     Engine,
     Scene,
@@ -17,36 +18,8 @@ import {
     ArcRotateCamera,
     HemisphericLight,
     Color3,
-    Color4,
+    Color4
 } from 'babylonjs';
-
-function parseNbt(nbt: string): Tag {
-    const buff = Buffer.from(nbt, 'base64');
-    const deflated = Buffer.from(unzip(buff));
-    const data = decode(deflated, {
-        unnamed: false,
-        useMaps: true
-    });
-    return { [data.name]: [data.value] };
-}
-
-const INVISIBLE_BLOCKS = new Set([
-    'air',
-    'cave_air',
-    'void_air',
-    'structure_void',
-    'barrier'
-]);
-
-export const TRANSPARENT_BLOCKS = new Set([
-    ...INVISIBLE_BLOCKS,
-    ...TransparentBlocks
-]);
-
-export const NON_OCCLUDING_BLOCKS = new Set([
-    ...INVISIBLE_BLOCKS,
-    ...NonOccludingBlocks
-]);
 
 export async function renderSchematic(
     canvas: HTMLCanvasElement,
@@ -66,13 +39,21 @@ export async function renderSchematic(
         alpha: backgroundColor !== 'transparent',
         powerPreference: 'high-performance'
     });
-
-    const scene = new Scene(engine);
-    let hasDestroyed = false;
-
     if (size) {
         engine.setSize(size, size);
     }
+
+    const scene = new Scene(engine);
+    scene.ambientColor = new Color3(0.5, 0.5, 0.5);
+    if (backgroundColor !== 'transparent') {
+        scene.clearColor = Color4.FromHexString(
+            `#${backgroundColor.toString(16)}FF`
+        );
+    } else {
+        scene.clearColor = new Color4(0, 0, 0, 0);
+    }
+
+    let hasDestroyed = false;
 
     const camera = new ArcRotateCamera(
         'camera',
@@ -86,14 +67,6 @@ export async function renderSchematic(
 
     const light = new HemisphericLight('light1', new Vector3(1, 1, 0), scene);
     light.specular = new Color3(0, 0, 0);
-    scene.ambientColor = new Color3(0.5, 0.5, 0.5);
-    if (backgroundColor !== 'transparent') {
-        scene.clearColor = Color4.FromHexString(
-            `#${backgroundColor.toString(16)}FF`
-        );
-    } else {
-        scene.clearColor = new Color4(0, 0, 0, 0);
-    }
 
     canvas.addEventListener('contextmenu', e => {
         // right click is drag, don't let the menu get in the way.
@@ -109,14 +82,12 @@ export async function renderSchematic(
         scene.render();
     });
 
-    const rootTag = parseNbt(schematic);
-    const loadedSchematic = loadSchematic((rootTag as any).Schematic[0]);
-
-    const dataVersion = loadedSchematic.dataVersion;
-    const jarUrl = DataVersionMap[dataVersion];
+    const loadedSchematic = loadSchematic(
+        (parseNbt(schematic) as any).Schematic[0]
+    );
 
     const resourceLoader = await getResourceLoader([
-        `${corsBypassUrl}${jarUrl}`,
+        `${corsBypassUrl}${DataVersionMap[loadedSchematic.dataVersion]}`,
         ...(resourcePacks ?? [])
     ]);
     const modelLoader = await getModelLoader(resourceLoader);
@@ -168,9 +139,9 @@ export async function renderSchematic(
                 mesh.position.x += -schematic.width / 2 + x + 0.5;
                 mesh.position.y += -schematic.height / 2 + y + 0.5;
                 mesh.position.z += -schematic.length / 2 + z + 0.5;
-                scene.addMesh(mesh);
-
                 mesh.freezeWorldMatrix();
+
+                scene.addMesh(mesh);
             }
         }
 
