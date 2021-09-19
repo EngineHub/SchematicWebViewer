@@ -18,9 +18,9 @@ window.addEventListener('load', () => {
         orbit: false
     });
 
-    // renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
-    //     corsBypassUrl: CORS_ANYWHERE,
-    //     renderArrow: false,
-    //     renderBars: false
-    // });
+    renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
+        corsBypassUrl: CORS_ANYWHERE,
+        renderArrow: false,
+        renderBars: false
+    });
 });

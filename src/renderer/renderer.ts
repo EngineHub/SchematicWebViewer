@@ -1,4 +1,4 @@
-import { loadSchematic, Schematic } from '@enginehub/schematicjs';
+import { loadSchematic } from '@enginehub/schematicjs';
 import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
@@ -86,71 +86,6 @@ export async function renderSchematic(
         (parseNbt(schematic) as any).Schematic[0]
     );
 
-    const resourceLoader = await getResourceLoader([
-        `${corsBypassUrl}${DataVersionMap[loadedSchematic.dataVersion]}`,
-        ...(resourcePacks ?? [])
-    ]);
-    const modelLoader = await getModelLoader(resourceLoader);
-
-    const buildSceneFromSchematic = async (
-        schematic: Schematic,
-        scene: Scene
-    ) => {
-        for (const pos of schematic) {
-            const { x, y, z } = pos;
-            const block = schematic.getBlock(pos);
-
-            if (!block) {
-                console.log(
-                    `Missing block ${x} ${y} ${z} ${JSON.stringify(schematic)}`
-                );
-                continue;
-            }
-            if (INVISIBLE_BLOCKS.has(block.type)) {
-                continue;
-            }
-
-            let anyVisible = false;
-
-            for (const face of POSSIBLE_FACES) {
-                const faceOffset = faceToFacingVector(face);
-                const offBlock = schematic.getBlock({
-                    x: x + faceOffset[0],
-                    y: y + faceOffset[1],
-                    z: z + faceOffset[2]
-                });
-
-                if (!offBlock || NON_OCCLUDING_BLOCKS.has(offBlock.type)) {
-                    anyVisible = true;
-                    break;
-                }
-            }
-
-            if (!anyVisible) {
-                continue;
-            }
-
-            const meshes = await modelLoader.getModel(block, scene);
-            for (const mesh of meshes) {
-                if (!mesh) {
-                    continue;
-                }
-
-                mesh.position.x += -schematic.width / 2 + x + 0.5;
-                mesh.position.y += -schematic.height / 2 + y + 0.5;
-                mesh.position.z += -schematic.length / 2 + z + 0.5;
-                mesh.freezeWorldMatrix();
-
-                scene.addMesh(mesh);
-            }
-        }
-
-        scene.createOrUpdateSelectionOctree();
-        resourceLoader.clearCache();
-        modelLoader.clearCache();
-    };
-
-    await buildSceneFromSchematic(loadedSchematic, scene);
     const {
         width: worldWidth,
         height: worldHeight,
@@ -159,7 +94,69 @@ export async function renderSchematic(
 
     const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
     camera.radius = cameraOffset;
-    camera.attachControl(canvas, true);
+
+    const resourceLoader = await getResourceLoader([
+        `${corsBypassUrl}${DataVersionMap[loadedSchematic.dataVersion]}`,
+        ...(resourcePacks ?? [])
+    ]);
+    const modelLoader = await getModelLoader(resourceLoader);
+
+    for (const pos of loadedSchematic) {
+        const { x, y, z } = pos;
+        const block = loadedSchematic.getBlock(pos);
+
+        if (!block) {
+            console.log(
+                `Missing block ${x} ${y} ${z} ${JSON.stringify(
+                    loadedSchematic
+                )}`
+            );
+            continue;
+        }
+        if (INVISIBLE_BLOCKS.has(block.type)) {
+            continue;
+        }
+
+        let anyVisible = false;
+
+        for (const face of POSSIBLE_FACES) {
+            const faceOffset = faceToFacingVector(face);
+            const offBlock = loadedSchematic.getBlock({
+                x: x + faceOffset[0],
+                y: y + faceOffset[1],
+                z: z + faceOffset[2]
+            });
+
+            if (!offBlock || NON_OCCLUDING_BLOCKS.has(offBlock.type)) {
+                anyVisible = true;
+                break;
+            }
+        }
+
+        if (!anyVisible) {
+            continue;
+        }
+
+        const meshes = await modelLoader.getModel(block, scene);
+        for (const mesh of meshes) {
+            if (!mesh) {
+                continue;
+            }
+
+            mesh.position.x += -worldWidth / 2 + x + 0.5;
+            mesh.position.y += -worldHeight / 2 + y + 0.5;
+            mesh.position.z += -worldLength / 2 + z + 0.5;
+            mesh.freezeWorldMatrix();
+
+            scene.addMesh(mesh);
+        }
+    }
+
+    scene.createOrUpdateSelectionOctree();
+    resourceLoader.clearCache();
+    modelLoader.clearCache();
+
+    camera.attachControl(false);
 
     if (orbit) {
         scene.registerBeforeRender(() => {
