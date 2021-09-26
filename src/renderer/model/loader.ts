@@ -14,11 +14,14 @@ import {
     Color3,
     Mesh
 } from 'babylonjs';
+import { InstancedMesh } from 'babylonjs/Meshes/instancedMesh';
 import deepmerge from 'deepmerge';
 import { ResourceLoader } from '../../resource/resourceLoader';
-import { faceToFacingVector, TRANSPARENT_BLOCKS } from '../utils';
-import { loadBlockStateDefinition, loadModel } from './parser';
+import { TRANSPARENT_BLOCKS } from '../utils';
+import { loadModel } from './parser';
 import {
+    BlockModelData,
+    BlockModelOption,
     BlockStateDefinition,
     BlockStateDefinitionVariant,
     BlockStateModelHolder,
@@ -39,18 +42,25 @@ function normalize(input: number): number {
 
 interface ModelLoader {
     clearCache: () => void;
-    getModel: (
+    getBlockModelData: (
         block: Block,
-        scene: Scene,
-        isAdjacentOccluding: (x: number, y: number, z: number) => boolean
-    ) => Promise<Mesh[]>;
+        blockState: BlockStateDefinition
+    ) => BlockModelData;
+    getModelOption: (data: BlockModelData) => BlockModelOption;
+    getModel: (
+        data: BlockModelOption,
+        block: Block,
+        scene: Scene
+    ) => Promise<InstancedMesh[]>;
 }
 
 export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
     const materialCache = new Map<string, Material>();
+    const modelCache = new Map<string, Mesh[]>();
 
     const clearCache = () => {
         materialCache.clear();
+        modelCache.clear();
     };
 
     async function getTextureMaterial(
@@ -117,43 +127,52 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
         mat.useAlphaFromDiffuseTexture = transparent;
         mat.ambientColor = AMBIENT_LIGHT;
         mat.disableDepthWrite = transparent;
-        mat.freeze();
 
         materialCache.set(cacheKey, mat);
         return mat;
     }
 
-    function getModelHolders(block: Block, blockState: BlockStateDefinition) {
-        const holders: BlockStateModelHolder[] = [];
+    function getBlockModelData(
+        block: Block,
+        blockState: BlockStateDefinition
+    ): BlockModelData {
+        const models: BlockModelData['models'] = [];
 
-        const chooseVariant = (
+        const validVariantProperties = blockState.variants
+            ? new Set(
+                  Object.keys(blockState.variants)[0]
+                      .split(',')
+                      .map(a => a.split('=')[0])
+              )
+            : new Set(Object.keys(block.properties));
+        const variantName = Object.keys(block.properties)
+            .sort()
+            .reduce((a, b) => {
+                if (!validVariantProperties.has(b)) {
+                    return a;
+                }
+                a.push(`${b}=${block.properties[b]}`);
+                return a;
+            }, [])
+            .join(',');
+
+        const createWeightedModels = (
             model: BlockStateModelHolder | BlockStateModelHolder[]
-        ): BlockStateModelHolder => {
+        ): BlockModelData['models'][number]['options'] => {
             if (Array.isArray(model)) {
-                return model[Math.floor(Math.random() * model.length)];
+                return model.map(m => ({ holder: m, weight: m.weight ?? 1 }));
             }
-            return model;
+            return [{ holder: model, weight: 1 }];
         };
 
         if (blockState.variants?.['']) {
-            holders.push(chooseVariant(blockState.variants['']));
+            models.push({
+                options: createWeightedModels(blockState.variants[''])
+            });
         } else if (blockState.variants) {
-            const validVariantProperties = new Set(
-                Object.keys(blockState.variants)[0]
-                    .split(',')
-                    .map(a => a.split('=')[0])
-            );
-            const variantName = Object.keys(block.properties)
-                .sort()
-                .reduce((a, b) => {
-                    if (!validVariantProperties.has(b)) {
-                        return a;
-                    }
-                    a.push(`${b}=${block.properties[b]}`);
-                    return a;
-                }, [])
-                .join(',');
-            holders.push(chooseVariant(blockState.variants[variantName]));
+            models.push({
+                options: createWeightedModels(blockState.variants[variantName])
+            });
         } else if (blockState.multipart) {
             const doesFilterPass = (
                 filter: BlockStateDefinitionVariant<string>
@@ -187,31 +206,48 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                     }
                 }
 
-                holders.push(chooseVariant(part.apply));
+                models.push({ options: createWeightedModels(part.apply) });
             }
         }
 
-        return holders;
+        const name =
+            variantName.length > 0
+                ? `${block.type}[${variantName}]`
+                : block.type;
+
+        return { models, name };
     }
 
-    async function getModel(
-        block: Block,
-        scene: Scene,
-        isAdjacentOccluding: (x: number, y: number, z: number) => boolean
-    ): Promise<Mesh[]> {
-        const blockState = await loadBlockStateDefinition(
-            block.type,
-            resourceLoader
-        );
-        const modelHolders = getModelHolders(block, blockState);
+    const getModelOption = (data: BlockModelData) => {
+        let name = data.name;
+        const holders = [];
+        for (const model of data.models) {
+            const index = Math.floor(Math.random() * model.options.length);
+            holders.push(model.options[index].holder);
+            name = `${name}-${index}`;
+        }
 
-        if (!modelHolders.length) {
-            console.log(blockState);
-            return [];
+        return { name, holders };
+    };
+
+    const getModel = async (
+        data: BlockModelOption,
+        block: Block,
+        scene: Scene
+    ) => {
+        if (modelCache.has(data.name)) {
+            return modelCache
+                .get(data.name)
+                .map((mesh, i) => mesh.createInstance(`${data.name}-${i}`));
         }
 
         const group: Mesh[] = [];
-        for (const modelHolder of modelHolders) {
+        for (
+            let modelIndex = 0;
+            modelIndex < data.holders.length;
+            modelIndex++
+        ) {
+            const modelHolder = data.holders[modelIndex];
             const model = await loadModel(modelHolder.model, resourceLoader);
             const resolveTexture = (ref: string) => {
                 while (ref.startsWith('#')) {
@@ -238,7 +274,12 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                         continue;
                     }
 
-                    // Normalize to/from to threejs coords.
+                    // Rewrite bottom to down for weird MC quirk.
+                    if (element.faces['bottom']) {
+                        element.faces['down'] = element.faces['bottom'];
+                    }
+
+                    // Normalize to/from to local coords.
                     element.from = element.from.map(normalize) as Vector;
                     element.to = element.to.map(normalize) as Vector;
                     if (element.rotation) {
@@ -255,23 +296,11 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
 
                     const colours = [];
                     let hasColor = false;
-                    const subMaterials = [];
-
-                    // For rotated blocks, we need to check the occlusion faces with rotation applied, so disable for now.
-                    const shouldCheckOcclusion =
-                        !element.rotation && !modelHolder.y && !modelHolder.x;
+                    let subMaterials: Material[] = [];
 
                     for (const face of POSSIBLE_FACES) {
                         const faceData = element.faces[face];
-                        if (
-                            !faceData ||
-                            (shouldCheckOcclusion &&
-                                isAdjacentOccluding(
-                                    ...faceToFacingVector(
-                                        faceData.cullface ?? face
-                                    )
-                                ))
-                        ) {
+                        if (!faceData) {
                             subMaterials.push(undefined);
                             colours.push(undefined);
                             continue;
@@ -304,13 +333,16 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                         colours.push(color);
                     }
 
-                    const box = MeshBuilder.CreateBox('box', {
-                        width: elementSize[0] || 0.0001,
-                        height: elementSize[1] || 0.0001,
-                        depth: elementSize[2] || 0.0001,
-                        wrap: true,
-                        faceColors: hasColor ? colours : undefined
-                    });
+                    const box = MeshBuilder.CreateBox(
+                        `${data.name}-${modelIndex}`,
+                        {
+                            width: elementSize[0] || 0.001,
+                            height: elementSize[1] || 0.001,
+                            depth: elementSize[2] || 0.001,
+                            wrap: true,
+                            faceColors: hasColor ? colours : undefined
+                        }
+                    );
 
                     const subMeshes = [];
                     const verticesCount = box.getTotalVertices();
@@ -333,14 +365,37 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                         subMeshes.push(subMesh);
                     }
                     box.subMeshes = subMeshes;
-
-                    // TODO - Validate if material names must be unique.
-                    const material = new MultiMaterial(block.type, scene);
-
                     // Remove the undefined ones.
-                    material.subMaterials = subMaterials.filter(mat => mat);
+                    subMaterials = subMaterials.filter(mat => mat);
 
-                    material.freeze();
+                    // If we're a list of the same material, just use that.
+                    if (subMaterials.length > 1) {
+                        const testMaterial = subMaterials[0];
+                        let allMatch = true;
+                        for (let i = 1; i < subMaterials.length; i++) {
+                            if (subMaterials[i] !== testMaterial) {
+                                allMatch = false;
+                                break;
+                            }
+                        }
+                        if (allMatch) {
+                            subMaterials = [testMaterial];
+                        }
+                    }
+
+                    let material: Material = undefined;
+                    if (subMaterials.length > 1) {
+                        material = new MultiMaterial(
+                            `${data.name}-${modelIndex}`,
+                            scene
+                        );
+                        (material as MultiMaterial).subMaterials = subMaterials;
+                    } else if (subMaterials.length === 1) {
+                        material = subMaterials[0];
+                    } else {
+                        continue;
+                    }
+
                     box.material = material;
 
                     if (element.rotation) {
@@ -408,11 +463,18 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
         }
 
         // We cannot merge these meshes as we lose independent face colours.
-        return group;
-    }
+        for (const mesh of group) {
+            mesh.setEnabled(false);
+            mesh.isVisible = false;
+        }
+        modelCache.set(data.name, group);
+        return group.map((mesh, i) => mesh.createInstance(`${data.name}-${i}`));
+    };
 
     return {
         clearCache,
+        getBlockModelData,
+        getModelOption,
         getModel
     };
 }

@@ -1,10 +1,10 @@
-import { loadSchematic } from '@enginehub/schematicjs';
+import { Block, loadSchematic } from '@enginehub/schematicjs';
 import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
 import DataVersionMap from '../dataVersionMap.json';
-import { POSSIBLE_FACES } from './model/types';
+import { BlockModelData, POSSIBLE_FACES } from './model/types';
 import {
     faceToFacingVector,
     INVISIBLE_BLOCKS,
@@ -18,8 +18,10 @@ import {
     ArcRotateCamera,
     HemisphericLight,
     Color3,
-    Color4
+    Color4,
+    Mesh
 } from 'babylonjs';
+import { loadBlockStateDefinition } from './model/parser';
 
 export async function renderSchematic(
     canvas: HTMLCanvasElement,
@@ -32,7 +34,8 @@ export async function renderSchematic(
         renderArrow = true,
         renderBars = true,
         antialias = false,
-        backgroundColor = 0xffffff
+        backgroundColor = 0xffffff,
+        debug = false
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const engine = new Engine(canvas, antialias, {
@@ -43,7 +46,10 @@ export async function renderSchematic(
         engine.setSize(size, size);
     }
 
-    const scene = new Scene(engine);
+    const scene = new Scene(engine, {
+        useGeometryUniqueIdsMap: true,
+    });
+
     scene.ambientColor = new Color3(0.5, 0.5, 0.5);
     if (backgroundColor !== 'transparent') {
         scene.clearColor = Color4.FromHexString(
@@ -101,6 +107,28 @@ export async function renderSchematic(
     ]);
     const modelLoader = getModelLoader(resourceLoader);
 
+    const blockModelLookup: Map<Block, BlockModelData> = new Map();
+
+    for (const block of loadedSchematic.blockTypes) {
+        if (INVISIBLE_BLOCKS.has(block.type)) {
+            continue;
+        }
+        const blockState = await loadBlockStateDefinition(
+            block.type,
+            resourceLoader
+        );
+        const blockModelData = modelLoader.getBlockModelData(block, blockState);
+
+        if (!blockModelData.models.length) {
+            console.log(blockState);
+            continue;
+        }
+
+        blockModelLookup.set(block, blockModelData);
+    }
+
+    Mesh.INSTANCEDMESH_SORT_TRANSPARENT = true;
+
     for (const pos of loadedSchematic) {
         const { x, y, z } = pos;
         const block = loadedSchematic.getBlock(pos);
@@ -113,7 +141,9 @@ export async function renderSchematic(
             );
             continue;
         }
-        if (INVISIBLE_BLOCKS.has(block.type)) {
+
+        const modelData = blockModelLookup.get(block);
+        if (!modelData) {
             continue;
         }
 
@@ -137,27 +167,9 @@ export async function renderSchematic(
             continue;
         }
 
-        const isAdjacentOccluding = (
-            xOffset: number,
-            yOffset: number,
-            zOffset: number
-        ) => {
-            const offBlock = loadedSchematic.getBlock({
-                x: x + xOffset,
-                y: y + yOffset,
-                z: z + zOffset
-            });
-            if (!offBlock) {
-                return false;
-            }
-            return !NON_OCCLUDING_BLOCKS.has(offBlock.type);
-        };
+        const option = modelLoader.getModelOption(modelData);
 
-        const meshes = await modelLoader.getModel(
-            block,
-            scene,
-            isAdjacentOccluding
-        );
+        const meshes = await modelLoader.getModel(option, block, scene);
         for (const mesh of meshes) {
             if (!mesh) {
                 continue;
@@ -173,10 +185,15 @@ export async function renderSchematic(
     }
 
     scene.createOrUpdateSelectionOctree();
+    scene.freezeMaterials();
+    if (debug) {
+        scene.debugLayer.show();
+    }
+    blockModelLookup.clear();
     resourceLoader.clearCache();
     modelLoader.clearCache();
 
-    camera.attachControl(false);
+    camera.attachControl(false, true);
 
     if (orbit) {
         scene.registerBeforeRender(() => {

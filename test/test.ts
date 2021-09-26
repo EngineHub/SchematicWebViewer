@@ -11,16 +11,16 @@ const ROTATE_TEST_SCHEM = 'H4sIAAAAAAAA/5VT32sTQRCedpP7FTTiQ8FHfbUtDUWEwj00GOiDb
 const CORS_ANYWHERE = 'https://cors-anywhere-eh.octyl.net/';
 
 window.addEventListener('load', () => {
-    renderSchematic(document.querySelector('#main'), COMPLEX_SCHEM, {
+    renderSchematic(document.querySelector('#main'), VILLAGE_SCHEM, {
         renderArrow: false,
         renderBars: false,
         corsBypassUrl: CORS_ANYWHERE,
         orbit: false
     });
 
-    renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
-        corsBypassUrl: CORS_ANYWHERE,
-        renderArrow: false,
-        renderBars: false
-    });
+    // renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
+    //     corsBypassUrl: CORS_ANYWHERE,
+    //     renderArrow: false,
+    //     renderBars: false
+    // });
 });

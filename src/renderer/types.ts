@@ -13,4 +13,5 @@ export interface SchematicRenderOptions {
     antialias?: boolean;
     backgroundColor?: number | 'transparent';
     loadingSpinner?: boolean;
+    debug?: boolean;
 }

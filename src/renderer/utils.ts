@@ -9,6 +9,7 @@ export function faceToFacingVector(face: Faces): Vector {
         case 'up':
             return [0, 1, 0];
         case 'down':
+        case 'bottom':
             return [0, -1, 0];
         case 'north':
             return [0, 0, -1];
@@ -19,7 +20,7 @@ export function faceToFacingVector(face: Faces): Vector {
         case 'west':
             return [-1, 0, 0];
         default:
-            return [0, 0, 0];
+            throw new Error(`Unknown face: ${face}`);
     }
 }
 
