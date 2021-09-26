@@ -219,10 +219,30 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
     }
 
     const getModelOption = (data: BlockModelData) => {
+        const weightedRandomIndex = (
+            options: BlockModelData['models'][number]['options']
+        ) => {
+            const weights = [];
+
+            for (let i = 0; i < options.length; i++) {
+                weights[i] = options[i].weight + (weights[i - 1] || 0);
+            }
+
+            const random = Math.random() * weights[weights.length - 1];
+
+            for (let i = 0; i < weights.length; i++) {
+                if (weights[i] > random) {
+                    return i;
+                }
+            }
+
+            return weights.length - 1;
+        };
+
         let name = data.name;
         const holders = [];
         for (const model of data.models) {
-            const index = Math.floor(Math.random() * model.options.length);
+            const index = weightedRandomIndex(model.options);
             holders.push(model.options[index].holder);
             name = `${name}-${index}`;
         }
