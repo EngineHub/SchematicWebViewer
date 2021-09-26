@@ -99,7 +99,7 @@ export async function renderSchematic(
         `${corsBypassUrl}${DataVersionMap[loadedSchematic.dataVersion]}`,
         ...(resourcePacks ?? [])
     ]);
-    const modelLoader = await getModelLoader(resourceLoader);
+    const modelLoader = getModelLoader(resourceLoader);
 
     for (const pos of loadedSchematic) {
         const { x, y, z } = pos;
@@ -137,7 +137,27 @@ export async function renderSchematic(
             continue;
         }
 
-        const meshes = await modelLoader.getModel(block, scene);
+        const isAdjacentOccluding = (
+            xOffset: number,
+            yOffset: number,
+            zOffset: number
+        ) => {
+            const offBlock = loadedSchematic.getBlock({
+                x: x + xOffset,
+                y: y + yOffset,
+                z: z + zOffset
+            });
+            if (!offBlock) {
+                return false;
+            }
+            return !NON_OCCLUDING_BLOCKS.has(offBlock.type);
+        };
+
+        const meshes = await modelLoader.getModel(
+            block,
+            scene,
+            isAdjacentOccluding
+        );
         for (const mesh of meshes) {
             if (!mesh) {
                 continue;

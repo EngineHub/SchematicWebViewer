@@ -11,11 +11,12 @@ import {
     Vector3,
     Axis,
     Space,
-    Color3
+    Color3,
+    Mesh
 } from 'babylonjs';
 import deepmerge from 'deepmerge';
 import { ResourceLoader } from '../../resource/resourceLoader';
-import { TRANSPARENT_BLOCKS } from '../utils';
+import { faceToFacingVector, TRANSPARENT_BLOCKS } from '../utils';
 import { loadBlockStateDefinition, loadModel } from './parser';
 import {
     BlockStateDefinition,
@@ -36,7 +37,16 @@ function normalize(input: number): number {
     return input / 16 - 0.5;
 }
 
-export async function getModelLoader(resourceLoader: ResourceLoader) {
+interface ModelLoader {
+    clearCache: () => void;
+    getModel: (
+        block: Block,
+        scene: Scene,
+        isAdjacentOccluding: (x: number, y: number, z: number) => boolean
+    ) => Promise<Mesh[]>;
+}
+
+export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
     const materialCache = new Map<string, Material>();
 
     const clearCache = () => {
@@ -184,7 +194,11 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
         return holders;
     }
 
-    async function getModel(block: Block, scene: Scene) {
+    async function getModel(
+        block: Block,
+        scene: Scene,
+        isAdjacentOccluding: (x: number, y: number, z: number) => boolean
+    ): Promise<Mesh[]> {
         const blockState = await loadBlockStateDefinition(
             block.type,
             resourceLoader
@@ -196,7 +210,7 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
             return [];
         }
 
-        const group = [];
+        const group: Mesh[] = [];
         for (const modelHolder of modelHolders) {
             const model = await loadModel(modelHolder.model, resourceLoader);
             const resolveTexture = (ref: string) => {
@@ -243,13 +257,25 @@ export async function getModelLoader(resourceLoader: ResourceLoader) {
                     let hasColor = false;
                     const subMaterials = [];
 
+                    // For rotated blocks, we need to check the occlusion faces with rotation applied, so disable for now.
+                    const shouldCheckOcclusion =
+                        !element.rotation && !modelHolder.y && !modelHolder.x;
+
                     for (const face of POSSIBLE_FACES) {
-                        if (!element.faces[face]) {
+                        const faceData = element.faces[face];
+                        if (
+                            !faceData ||
+                            (shouldCheckOcclusion &&
+                                isAdjacentOccluding(
+                                    ...faceToFacingVector(
+                                        faceData.cullface ?? face
+                                    )
+                                ))
+                        ) {
                             subMaterials.push(undefined);
                             colours.push(undefined);
                             continue;
                         }
-                        const faceData = element.faces[face];
                         const tex = resolveTexture(faceData.texture);
 
                         subMaterials.push(
