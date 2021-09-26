@@ -74,12 +74,6 @@ export async function renderSchematic(
     const light = new HemisphericLight('light1', new Vector3(1, 1, 0), scene);
     light.specular = new Color3(0, 0, 0);
 
-    canvas.addEventListener('contextmenu', e => {
-        // right click is drag, don't let the menu get in the way.
-        e.preventDefault();
-        return false;
-    });
-
     engine.runRenderLoop(() => {
         if (hasDestroyed) {
             return;

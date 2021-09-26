@@ -1,5 +1,3 @@
-import { Block } from "@enginehub/schematicjs";
-
 export interface BlockStateModelHolder {
     model: string;
     x?: number;
