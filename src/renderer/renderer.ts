@@ -93,7 +93,7 @@ export async function renderSchematic(
     } = loadedSchematic;
 
     const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
-    camera.radius = cameraOffset;
+    camera.radius = cameraOffset * 3;
 
     const resourceLoader = await getResourceLoader([
         `${corsBypassUrl}${DataVersionMap[loadedSchematic.dataVersion]}`,
