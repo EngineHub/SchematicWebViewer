@@ -3,7 +3,6 @@ import { SchematicHandles } from '.';
 import { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
-import DataVersionMap from '../dataVersionMap.json';
 import { BlockModelData, POSSIBLE_FACES } from './model/types';
 import {
     faceToFacingVector,
@@ -23,6 +22,11 @@ import {
 } from 'babylonjs';
 import { loadBlockStateDefinition } from './model/parser';
 
+const CASSETTE_DECK_URL = `https://services.enginehub.org/cassette-deck/minecraft-versions/find?dataVersion=`;
+const EARLIEST_DV = 1913;
+const URL_1_13 =
+    'https://launcher.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar';
+
 export async function renderSchematic(
     canvas: HTMLCanvasElement,
     schematic: string,
@@ -31,8 +35,8 @@ export async function renderSchematic(
         resourcePacks,
         size,
         orbit = true,
-        renderArrow = true,
-        renderBars = true,
+        renderArrow = false,
+        renderBars = false,
         antialias = false,
         backgroundColor = 0xffffff,
         debug = false
@@ -47,7 +51,7 @@ export async function renderSchematic(
     }
 
     const scene = new Scene(engine, {
-        useGeometryUniqueIdsMap: true,
+        useGeometryUniqueIdsMap: true
     });
 
     scene.ambientColor = new Color3(0.5, 0.5, 0.5);
@@ -95,8 +99,16 @@ export async function renderSchematic(
     const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
     camera.radius = cameraOffset * 3;
 
+    const versionManifestFile = await (
+        await fetch(
+            `${corsBypassUrl}${CASSETTE_DECK_URL}${
+                loadedSchematic.dataVersion ?? EARLIEST_DV
+            }`
+        )
+    ).json();
+
     const resourceLoader = await getResourceLoader([
-        `${corsBypassUrl}${DataVersionMap[loadedSchematic.dataVersion]}`,
+        `${corsBypassUrl}${versionManifestFile?.clientJarUrl ?? URL_1_13}`,
         ...(resourcePacks ?? [])
     ]);
     const modelLoader = getModelLoader(resourceLoader);
