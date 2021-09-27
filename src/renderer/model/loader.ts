@@ -1,18 +1,19 @@
 import { Block } from '@enginehub/schematicjs';
 import {
+    Axis,
+    Color3,
+    Color4,
     Material,
-    Texture,
-    Scene,
-    StandardMaterial,
+    Mesh,
     MeshBuilder,
     MultiMaterial,
-    SubMesh,
-    Color4,
-    Vector3,
-    Axis,
+    Scene,
     Space,
-    Color3,
-    Mesh
+    StandardMaterial,
+    SubMesh,
+    Texture,
+    Vector3,
+    Vector4
 } from 'babylonjs';
 import { InstancedMesh } from 'babylonjs/Meshes/instancedMesh';
 import deepmerge from 'deepmerge';
@@ -67,18 +68,14 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
         tex: string,
         scene: Scene,
         rotation?: number,
-        uv?: [number, number, number, number],
         transparent?: boolean
     ): Promise<Material> {
         // Normalise values for better caching.
         if (rotation === 0) {
             rotation = undefined;
         }
-        if (uv && uv[0] === 0 && uv[1] === 0 && uv[2] === 16 && uv[3] === 16) {
-            uv = undefined;
-        }
 
-        const cacheKey = `${tex}_rot=${rotation}_uv=${uv}`;
+        const cacheKey = `${tex}_rot=${rotation}`;
 
         // TODO - Determine if there's a better way to handle this other than manually caching.
         const cached = materialCache.get(cacheKey);
@@ -109,17 +106,6 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
 
         if (rotation) {
             texture.wAng = rotation * DEG2RAD;
-        }
-        if (uv) {
-            // MC uses x1, y1, x2, y2 coords - ensure that Babylon handles this
-            texture.uOffset = uv[0] / 16;
-            texture.vOffset = uv[1] / 16;
-
-            texture.uScale = (uv[2] - uv[0]) / 16;
-            texture.vScale = (uv[3] - uv[1]) / 16;
-
-            texture.wrapU = Texture.WRAP_ADDRESSMODE;
-            texture.wrapV = Texture.WRAP_ADDRESSMODE;
         }
 
         const mat = new StandardMaterial(cacheKey, scene);
@@ -315,6 +301,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                     ];
 
                     const colours = [];
+                    const uvs = [];
                     let hasColor = false;
                     let subMaterials: Material[] = [];
 
@@ -323,6 +310,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                         if (!faceData) {
                             subMaterials.push(undefined);
                             colours.push(undefined);
+                            uvs.push(undefined);
                             continue;
                         }
                         const tex = resolveTexture(faceData.texture);
@@ -332,7 +320,6 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                                 tex,
                                 scene,
                                 faceData.rotation,
-                                faceData.uv,
                                 TRANSPARENT_BLOCKS.has(block.type) ||
                                     faceData.texture.includes('overlay')
                             )
@@ -351,6 +338,17 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                         }
                         hasColor = true;
                         colours.push(color);
+
+                        if (!faceData.uv) {
+                            faceData.uv = [0, 0, 16, 16];
+                        }
+                        faceData.uv = faceData.uv.map(u => u / 16) as [
+                            number,
+                            number,
+                            number,
+                            number
+                        ];
+                        uvs.push(new Vector4(...faceData.uv));
                     }
 
                     const box = MeshBuilder.CreateBox(
@@ -362,6 +360,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                             wrap: true,
                             faceColors: hasColor ? colours : undefined,
                             updatable: false,
+                            faceUV: uvs
                         },
                         scene
                     );

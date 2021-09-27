@@ -109,7 +109,7 @@ export async function renderSchematic(
     ).json();
 
     const resourceLoader = await getResourceLoader([
-        `${corsBypassUrl}${versionManifestFile?.clientJarUrl ?? URL_1_13}`,
+        `${corsBypassUrl}${versionManifestFile?.[0]?.clientJarUrl ?? URL_1_13}`,
         ...(resourcePacks ?? [])
     ]);
     const modelLoader = getModelLoader(resourceLoader);
@@ -195,7 +195,13 @@ export async function renderSchematic(
         addArrowToScene(scene, cameraOffset);
     }
     if (renderBars) {
-        addBarsToScene(scene, cameraOffset, worldWidth, worldHeight, worldLength);
+        addBarsToScene(
+            scene,
+            cameraOffset,
+            worldWidth,
+            worldHeight,
+            worldLength
+        );
     }
 
     scene.createOrUpdateSelectionOctree();
