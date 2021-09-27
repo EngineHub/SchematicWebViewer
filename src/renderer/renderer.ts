@@ -21,6 +21,7 @@ import {
     Mesh
 } from 'babylonjs';
 import { loadBlockStateDefinition } from './model/parser';
+import { addArrowToScene, addBarsToScene } from './shapes';
 
 const CASSETTE_DECK_URL = `https://services.enginehub.org/cassette-deck/minecraft-versions/find?dataVersion=`;
 const EARLIEST_DV = 1913;
@@ -188,6 +189,13 @@ export async function renderSchematic(
 
             scene.addMesh(mesh);
         }
+    }
+
+    if (renderArrow) {
+        addArrowToScene(scene, cameraOffset);
+    }
+    if (renderBars) {
+        addBarsToScene(scene, cameraOffset, worldWidth, worldHeight, worldLength);
     }
 
     scene.createOrUpdateSelectionOctree();

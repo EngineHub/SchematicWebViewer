@@ -20,7 +20,8 @@ window.addEventListener('load', () => {
 
     renderSchematic(document.querySelector('#second'), SIMPLE_SCHEM, {
         corsBypassUrl: CORS_ANYWHERE,
-        renderArrow: false,
-        renderBars: false
+        renderArrow: true,
+        renderBars: true,
+        antialias: true
     });
 });
