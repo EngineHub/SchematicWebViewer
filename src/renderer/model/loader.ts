@@ -360,8 +360,10 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                             height: elementSize[1] || 0.001,
                             depth: elementSize[2] || 0.001,
                             wrap: true,
-                            faceColors: hasColor ? colours : undefined
-                        }
+                            faceColors: hasColor ? colours : undefined,
+                            updatable: false,
+                        },
+                        scene
                     );
 
                     const subMeshes = [];
