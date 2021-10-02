@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "4.0.0-alpha.2",
+    "version": "4.0.0",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/index.js",
     "files": [
@@ -36,8 +36,8 @@
     },
     "devDependencies": {
         "@types/gzip-js": "^0.3.3",
-        "@typescript-eslint/eslint-plugin": "^4.31.2",
-        "@typescript-eslint/parser": "^4.31.2",
+        "@typescript-eslint/eslint-plugin": "^4.32.0",
+        "@typescript-eslint/parser": "^4.32.0",
         "eslint": "^7.32.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-prettier": "^4.0.0",
