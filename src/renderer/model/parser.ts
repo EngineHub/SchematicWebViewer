@@ -2,7 +2,7 @@ import deepmerge from 'deepmerge';
 import { ResourceLoader } from '../../resource/resourceLoader';
 import { BlockModel, BlockStateDefinition } from './types';
 
-export async function getBlockStateDefinition(
+export async function loadBlockStateDefinition(
     block: string,
     resourceLoader: ResourceLoader
 ): Promise<BlockStateDefinition> {
@@ -11,7 +11,7 @@ export async function getBlockStateDefinition(
     ) as BlockStateDefinition;
 }
 
-export async function getModel(
+export async function loadModel(
     modelRef: string,
     resourceLoader: ResourceLoader
 ): Promise<BlockModel> {
@@ -23,7 +23,7 @@ export async function getModel(
     ) as BlockModel;
 
     if (model.parent) {
-        let parent = await getModel(model.parent, resourceLoader);
+        const parent = await loadModel(model.parent, resourceLoader);
         if (model['elements'] && parent['elements']) {
             delete parent['elements'];
         }

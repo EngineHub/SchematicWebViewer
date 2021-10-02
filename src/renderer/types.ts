@@ -4,7 +4,7 @@ export interface SchematicHandles {
 }
 
 export interface SchematicRenderOptions {
-    size: number;
+    size?: number;
     corsBypassUrl: string;
     resourcePacks?: string[];
     renderBars?: boolean;
@@ -12,5 +12,5 @@ export interface SchematicRenderOptions {
     orbit?: boolean;
     antialias?: boolean;
     backgroundColor?: number | 'transparent';
-    loadingSpinner?: boolean;
+    debug?: boolean;
 }

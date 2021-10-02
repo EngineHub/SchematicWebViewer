@@ -3,6 +3,7 @@ export interface BlockStateModelHolder {
     x?: number;
     y?: number;
     uvlock?: boolean;
+    weight?: number;
 }
 
 type BlockStateDefinitionModel =
@@ -28,8 +29,8 @@ export interface BlockStateDefinition {
 
 export type Vector = [number, number, number];
 
-export const POSSIBLE_FACES = ['east', 'west', 'up', 'down', 'south', 'north'] as const;
-export type Faces = typeof POSSIBLE_FACES[number];
+export const POSSIBLE_FACES = ['south', 'north', 'east', 'west', 'up', 'down'] as const;
+export type Faces = typeof POSSIBLE_FACES[number] | 'bottom';
 
 export interface BlockModel {
     parent?: string;
@@ -65,4 +66,16 @@ export interface BlockModel {
             };
         };
     }[];
+}
+
+export interface BlockModelData {
+    name: string;
+    models: {
+        options: { holder: BlockStateModelHolder; weight: number }[];
+    }[];
+}
+
+export interface BlockModelOption {
+    name: string;
+    holders: BlockStateModelHolder[];
 }

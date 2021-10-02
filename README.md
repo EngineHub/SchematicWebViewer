@@ -33,7 +33,7 @@ The final argument is an options object that allows configuring various settings
 
 ```typescript
 interface SchematicRenderOptions {
-    size: string; // The size of the canvas viewport
+    size?: number; // Force the size of the canvas viewport, if not present use canvas size
     corsBypassUrl: string; // A url of a cors-anywhere instance to allow access to MC server jars
     resourcePacks?: string[]; // A list of resource pack URLs in priority order
     renderBars?: boolean; // Whether a grid should be rendered
@@ -41,7 +41,6 @@ interface SchematicRenderOptions {
     orbit?: boolean; // Whether the view should automatically rotate when not being dragged by the user
     antialias?: boolean; // Whether antialiasing should be enabled
     backgroundColor?: number | 'transparent'; // Background color of the canvas (default: 0xffffff)
-    loadingSpinner?: boolean; // Whether the loading spinner should render
 }
 ```
 
