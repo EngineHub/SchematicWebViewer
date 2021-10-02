@@ -1,10 +1,15 @@
+import { unzip } from 'gzip-js';
+import { decode, Tag } from 'nbt-ts';
 import { Faces, Vector } from './model/types';
+import NonOccludingBlocks from './nonOccluding.json';
+import TransparentBlocks from './transparent.json';
 
 export function faceToFacingVector(face: Faces): Vector {
     switch (face) {
         case 'up':
             return [0, 1, 0];
         case 'down':
+        case 'bottom':
             return [0, -1, 0];
         case 'north':
             return [0, 0, -1];
@@ -15,31 +20,35 @@ export function faceToFacingVector(face: Faces): Vector {
         case 'west':
             return [-1, 0, 0];
         default:
-            return [0, 0, 0];
+            throw new Error(`Unknown face: ${face}`);
     }
 }
 
-export type Runner<R = any> = (...args: any[]) => Promise<R>;
+export const INVISIBLE_BLOCKS = new Set([
+    'air',
+    'cave_air',
+    'void_air',
+    'structure_void',
+    'barrier',
+    'light'
+]);
 
-export async function runPromisePool<R>(
-    workers: Runner<R>[],
-    count = 25
-): Promise<R[]> {
-    if (workers.length === 0) {
-        return [];
-    }
+export const TRANSPARENT_BLOCKS = new Set([
+    ...INVISIBLE_BLOCKS,
+    ...TransparentBlocks
+]);
 
-    const methods = workers.slice();
-    const results: R[] = [];
+export const NON_OCCLUDING_BLOCKS = new Set([
+    ...INVISIBLE_BLOCKS,
+    ...NonOccludingBlocks
+]);
 
-    async function task(): Promise<void> {
-        while (methods.length > 0) {
-            const a = methods.pop()!;
-            const r = await a();
-            results.push(r);
-        }
-    }
-
-    await Promise.all(new Array(count).fill(undefined).map(() => task()));
-    return results.reverse();
+export function parseNbt(nbt: string): Tag {
+    const buff = Buffer.from(nbt, 'base64');
+    const deflated = Buffer.from(unzip(buff));
+    const data = decode(deflated, {
+        unnamed: false,
+        useMaps: true
+    });
+    return { [data.name]: [data.value] };
 }
