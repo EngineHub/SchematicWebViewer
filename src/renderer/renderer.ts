@@ -48,7 +48,12 @@ export async function renderSchematic(
         powerPreference: 'high-performance'
     });
     if (size) {
-        engine.setSize(size, size);
+        if (typeof size === 'number') {
+            engine.setSize(size, size);
+            console.warn('Usage of deprecated `size: number` property in Schematic renderer.');
+        } else {
+            engine.setSize(size.width, size.height);
+        }
     }
 
     const scene = new Scene(engine, {
@@ -224,6 +229,9 @@ export async function renderSchematic(
     return {
         resize(size: number): void {
             engine.setSize(size, size);
+        },
+        setSize(width: number, height: number): void {
+            engine.setSize(width, height);
         },
         destroy() {
             engine.dispose();
