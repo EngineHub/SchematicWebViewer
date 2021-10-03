@@ -22,6 +22,10 @@ window.addEventListener('load', () => {
         corsBypassUrl: CORS_ANYWHERE,
         renderArrow: true,
         renderBars: true,
-        antialias: true
+        antialias: true,
+        size: {
+            width: 500,
+            height: 500
+        }
     });
 });

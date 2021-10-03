@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "4.0.0",
+    "version": "4.1.0",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/index.js",
     "files": [
