@@ -1,5 +1,5 @@
 import { unzip } from 'gzip-js';
-import { decode, Tag } from 'nbt-ts';
+import { decode, TagMap } from 'nbt-ts';
 import { Faces, Vector } from './model/types';
 import NonOccludingBlocks from './nonOccluding.json';
 import TransparentBlocks from './transparent.json';
@@ -43,12 +43,12 @@ export const NON_OCCLUDING_BLOCKS = new Set([
     ...NonOccludingBlocks
 ]);
 
-export function parseNbt(nbt: string): Tag {
+export function parseNbt(nbt: string): TagMap {
     const buff = Buffer.from(nbt, 'base64');
     const deflated = Buffer.from(unzip(buff));
     const data = decode(deflated, {
         unnamed: false,
         useMaps: true
     });
-    return { [data.name]: [data.value] };
+    return data.value as TagMap;
 }

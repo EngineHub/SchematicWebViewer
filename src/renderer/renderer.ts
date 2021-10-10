@@ -50,7 +50,9 @@ export async function renderSchematic(
     if (size) {
         if (typeof size === 'number') {
             engine.setSize(size, size);
-            console.warn('Usage of deprecated `size: number` property in Schematic renderer.');
+            console.warn(
+                'Usage of deprecated `size: number` property in Schematic renderer.'
+            );
         } else {
             engine.setSize(size.width, size.height);
         }
@@ -92,9 +94,7 @@ export async function renderSchematic(
         scene.render();
     });
 
-    const loadedSchematic = loadSchematic(
-        (parseNbt(schematic) as any).Schematic[0]
-    );
+    const loadedSchematic = loadSchematic(parseNbt(schematic));
 
     const {
         width: worldWidth,
