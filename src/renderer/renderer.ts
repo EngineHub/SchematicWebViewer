@@ -40,7 +40,8 @@ export async function renderSchematic(
         renderBars = false,
         antialias = false,
         backgroundColor = 0xffffff,
-        debug = false
+        debug = false,
+        disableAutoRender = false
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const engine = new Engine(canvas, antialias, {
@@ -86,13 +87,17 @@ export async function renderSchematic(
     const light = new HemisphericLight('light1', new Vector3(1, 1, 0), scene);
     light.specular = new Color3(0, 0, 0);
 
-    engine.runRenderLoop(() => {
+    const render = () => {
         if (hasDestroyed) {
             return;
         }
 
         scene.render();
-    });
+    };
+
+    if (!disableAutoRender) {
+        engine.runRenderLoop(render);
+    }
 
     const loadedSchematic = loadSchematic(parseNbt(schematic));
 
@@ -146,11 +151,6 @@ export async function renderSchematic(
         const block = loadedSchematic.getBlock(pos);
 
         if (!block) {
-            console.log(
-                `Missing block ${x} ${y} ${z} ${JSON.stringify(
-                    loadedSchematic
-                )}`
-            );
             continue;
         }
 
@@ -236,6 +236,10 @@ export async function renderSchematic(
         destroy() {
             engine.dispose();
             hasDestroyed = true;
+        },
+        render,
+        getEngine(): Engine {
+            return engine;
         }
     };
 }
