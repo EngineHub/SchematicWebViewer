@@ -10,7 +10,7 @@ export function addArrowToScene(scene: Scene, cameraOffset: number): void {
             diameterBottom: cameraOffset / 2,
             height: cameraOffset / 200,
             tessellation: 3,
-            subdivisions: 1
+            subdivisions: 1,
         },
         scene
     );
@@ -40,7 +40,7 @@ export function addBarsToScene(
             diameterBottom: cameraOffset / 400,
             height: 1,
             tessellation: 3,
-            subdivisions: 1
+            subdivisions: 1,
         },
         scene
     );

@@ -29,7 +29,14 @@ export interface BlockStateDefinition {
 
 export type Vector = [number, number, number];
 
-export const POSSIBLE_FACES = ['south', 'north', 'east', 'west', 'up', 'down'] as const;
+export const POSSIBLE_FACES = [
+    'south',
+    'north',
+    'east',
+    'west',
+    'up',
+    'down',
+] as const;
 export type Faces = typeof POSSIBLE_FACES[number] | 'bottom';
 
 export interface BlockModel {

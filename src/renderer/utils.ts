@@ -30,17 +30,17 @@ export const INVISIBLE_BLOCKS = new Set([
     'void_air',
     'structure_void',
     'barrier',
-    'light'
+    'light',
 ]);
 
 export const TRANSPARENT_BLOCKS = new Set([
     ...INVISIBLE_BLOCKS,
-    ...TransparentBlocks
+    ...TransparentBlocks,
 ]);
 
 export const NON_OCCLUDING_BLOCKS = new Set([
     ...INVISIBLE_BLOCKS,
-    ...NonOccludingBlocks
+    ...NonOccludingBlocks,
 ]);
 
 export function parseNbt(nbt: string): TagMap {
@@ -48,7 +48,7 @@ export function parseNbt(nbt: string): TagMap {
     const deflated = Buffer.from(unzip(buff));
     const data = decode(deflated, {
         unnamed: false,
-        useMaps: true
+        useMaps: true,
     });
     return data.value as TagMap;
 }

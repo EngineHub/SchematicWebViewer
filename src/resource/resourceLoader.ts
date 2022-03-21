@@ -93,6 +93,6 @@ export async function getResourceLoader(
     return {
         getResourceBlob,
         getResourceString,
-        clearCache
+        clearCache,
     };
 }

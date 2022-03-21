@@ -8,7 +8,7 @@ import {
     faceToFacingVector,
     INVISIBLE_BLOCKS,
     NON_OCCLUDING_BLOCKS,
-    parseNbt
+    parseNbt,
 } from './utils';
 import {
     Engine,
@@ -18,7 +18,7 @@ import {
     HemisphericLight,
     Color3,
     Color4,
-    Mesh
+    Mesh,
 } from 'babylonjs';
 import { loadBlockStateDefinition } from './model/parser';
 import { addArrowToScene, addBarsToScene } from './shapes';
@@ -41,12 +41,12 @@ export async function renderSchematic(
         antialias = false,
         backgroundColor = 0xffffff,
         debug = false,
-        disableAutoRender = false
+        disableAutoRender = false,
     }: SchematicRenderOptions
 ): Promise<SchematicHandles> {
     const engine = new Engine(canvas, antialias, {
         alpha: backgroundColor !== 'transparent',
-        powerPreference: 'high-performance'
+        powerPreference: 'high-performance',
     });
     if (size) {
         if (typeof size === 'number') {
@@ -60,7 +60,7 @@ export async function renderSchematic(
     }
 
     const scene = new Scene(engine, {
-        useGeometryUniqueIdsMap: true
+        useGeometryUniqueIdsMap: true,
     });
 
     scene.ambientColor = new Color3(0.5, 0.5, 0.5);
@@ -104,7 +104,7 @@ export async function renderSchematic(
     const {
         width: worldWidth,
         height: worldHeight,
-        length: worldLength
+        length: worldLength,
     } = loadedSchematic;
 
     const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
@@ -120,7 +120,7 @@ export async function renderSchematic(
 
     const resourceLoader = await getResourceLoader([
         `${corsBypassUrl}${versionManifestFile?.[0]?.clientJarUrl ?? URL_1_13}`,
-        ...(resourcePacks ?? [])
+        ...(resourcePacks ?? []),
     ]);
     const modelLoader = getModelLoader(resourceLoader);
 
@@ -166,7 +166,7 @@ export async function renderSchematic(
             const offBlock = loadedSchematic.getBlock({
                 x: x + faceOffset[0],
                 y: y + faceOffset[1],
-                z: z + faceOffset[2]
+                z: z + faceOffset[2],
             });
 
             if (!offBlock || NON_OCCLUDING_BLOCKS.has(offBlock.type)) {
@@ -240,6 +240,6 @@ export async function renderSchematic(
         render,
         getEngine(): Engine {
             return engine;
-        }
+        },
     };
 }

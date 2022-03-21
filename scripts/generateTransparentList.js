@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require('fs/promises');
 
 /**
@@ -17,8 +18,14 @@ async function doTheFilter() {
     const transparent = data
         .filter(bl => bl.material.opaque === false || bl.id.includes('door'))
         .map(bl => bl.id.replace('minecraft:', ''));
-    await fs.writeFile('../src/renderer/nonOccluding.json', JSON.stringify(nonOccluding));
-    await fs.writeFile('../src/renderer/transparent.json', JSON.stringify(transparent));
+    await fs.writeFile(
+        '../src/renderer/nonOccluding.json',
+        JSON.stringify(nonOccluding)
+    );
+    await fs.writeFile(
+        '../src/renderer/transparent.json',
+        JSON.stringify(transparent)
+    );
 }
 
 doTheFilter();
