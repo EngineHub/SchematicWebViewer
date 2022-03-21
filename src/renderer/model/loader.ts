@@ -13,7 +13,7 @@ import {
     SubMesh,
     Texture,
     Vector3,
-    Vector4
+    Vector4,
 } from 'babylonjs';
 import { InstancedMesh } from 'babylonjs/Meshes/instancedMesh';
 import deepmerge from 'deepmerge';
@@ -27,7 +27,7 @@ import {
     BlockStateDefinitionVariant,
     BlockStateModelHolder,
     POSSIBLE_FACES,
-    Vector
+    Vector,
 } from './types';
 
 const TINT_COLOR = new Color4(145 / 255, 189 / 255, 89 / 255, 1);
@@ -153,11 +153,11 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
 
         if (blockState.variants?.['']) {
             models.push({
-                options: createWeightedModels(blockState.variants[''])
+                options: createWeightedModels(blockState.variants['']),
             });
         } else if (blockState.variants) {
             models.push({
-                options: createWeightedModels(blockState.variants[variantName])
+                options: createWeightedModels(blockState.variants[variantName]),
             });
         } else if (blockState.multipart) {
             const doesFilterPass = (
@@ -297,7 +297,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                     const elementSize = [
                         element.to[0] - element.from[0],
                         element.to[1] - element.from[1],
-                        element.to[2] - element.from[2]
+                        element.to[2] - element.from[2],
                     ];
 
                     const colours = [];
@@ -360,7 +360,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                             wrap: true,
                             faceColors: hasColor ? colours : undefined,
                             updatable: false,
-                            faceUV: uvs
+                            faceUV: uvs,
                         },
                         scene
                     );
@@ -496,6 +496,6 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
         clearCache,
         getBlockModelData,
         getModelOption,
-        getModel
+        getModel,
     };
 }

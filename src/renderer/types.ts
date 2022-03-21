@@ -1,4 +1,4 @@
-import { Engine } from "babylonjs";
+import { Engine } from 'babylonjs';
 
 export interface SchematicHandles {
     /**
@@ -7,7 +7,7 @@ export interface SchematicHandles {
     resize(size: number): void;
     /**
      * Set the size of the renderer.
-     * 
+     *
      * @param width The width
      * @param height The height
      */
@@ -18,13 +18,13 @@ export interface SchematicHandles {
     destroy(): void;
     /**
      * Call this to manually render the scene.
-     * 
+     *
      * To disable automatic rendering and purely rely on this function, see {@link SchematicRenderOptions#disableAutoRender}.
      */
     render(): void;
     /**
      * Gets the internal BabylonJS engine.
-     * 
+     *
      * Note: This method is provided for advanced use cases and should not be used in most cases.
      */
     getEngine(): Engine;
