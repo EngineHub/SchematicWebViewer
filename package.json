@@ -26,7 +26,7 @@
     "homepage": "https://github.com/EngineHub/SchematicWebViewer#readme",
     "dependencies": {
         "@enginehub/schematicjs": "^0.4.0",
-        "babylonjs": "5.0.0-alpha.50",
+        "babylonjs": "5.0.0-rc.2",
         "deepmerge": "^4.2.2",
         "gzip-js": "^0.3.2",
         "jszip": "^3.7.1",
@@ -36,17 +36,17 @@
     },
     "devDependencies": {
         "@types/gzip-js": "^0.3.3",
-        "@typescript-eslint/eslint-plugin": "^4.32.0",
-        "@typescript-eslint/parser": "^4.32.0",
-        "eslint": "^7.32.0",
-        "eslint-config-prettier": "^8.3.0",
+        "@typescript-eslint/eslint-plugin": "^5.15.0",
+        "@typescript-eslint/parser": "^5.15.0",
+        "eslint": "^8.11.0",
+        "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-prettier": "^4.0.0",
-        "got": "^11.8.2",
+        "got": "^12.0.2",
         "parcel-bundler": "1.12.5",
-        "prettier": "^2.4.1",
+        "prettier": "^2.6.0",
         "prettier-eslint": "^13.0.0",
-        "ts-loader": "^9.2.6",
-        "typescript": "^4.4.3"
+        "ts-loader": "^9.2.8",
+        "typescript": "^4.6.2"
     },
     "browserslist": [
         "last 1 Chrome version"
