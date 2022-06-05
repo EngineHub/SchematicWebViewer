@@ -24,7 +24,6 @@ import { loadBlockStateDefinition } from './model/parser';
 import { addArrowToScene, addBarsToScene } from './shapes';
 
 const CASSETTE_DECK_URL = `https://services.enginehub.org/cassette-deck/minecraft-versions/find?dataVersion=`;
-const EARLIEST_DV = 1913;
 const URL_1_13 =
     'https://launcher.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar';
 
@@ -110,13 +109,13 @@ export async function renderSchematic(
     const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
     camera.radius = cameraOffset * 3;
 
-    const versionManifestFile = await (
-        await fetch(
-            `${corsBypassUrl}${CASSETTE_DECK_URL}${
-                loadedSchematic.dataVersion ?? EARLIEST_DV
-            }`
-        )
-    ).json();
+    const versionManifestFile = loadedSchematic.dataVersion
+        ? await (
+              await fetch(
+                  `${corsBypassUrl}${CASSETTE_DECK_URL}${loadedSchematic.dataVersion}`
+              )
+          ).json()
+        : undefined;
 
     const resourceLoader = await getResourceLoader([
         `${corsBypassUrl}${versionManifestFile?.[0]?.clientJarUrl ?? URL_1_13}`,
