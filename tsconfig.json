@@ -1,5 +1,5 @@
 {
-    "include": ["src/**/*", "scripts/generateTransparentList.js"],
+    "include": ["src/**/*"],
     "compilerOptions": {
         "outDir": "./dist/",
         "sourceMap": true,
