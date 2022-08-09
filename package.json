@@ -1,14 +1,16 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "4.2.3",
+    "version": "4.3.0",
     "description": "A web viewer for modern Minecraft schematics",
-    "main": "dist/index.js",
+    "main": "dist/cjs/index.js",
+    "module": "dist/esm/index.js",
+    "types": "dist/esm/index.d.ts",
     "files": [
         "dist/"
     ],
     "scripts": {
-        "prepublish": "rm -rf dist && tsc",
-        "build": "tsc",
+        "prepublish": "rm -rf dist && yarn build",
+        "build": "tsc && tsc --module commonjs --outDir dist/cjs",
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "parcel test/test.html --port 3000 --host 0.0.0.0",
         "type-check": "tsc --noEmit",
