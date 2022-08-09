@@ -1,9 +1,11 @@
-import { Block, loadSchematic } from '@enginehub/schematicjs';
-import { SchematicHandles } from '.';
-import { SchematicRenderOptions } from './types';
+import type { Block } from '@enginehub/schematicjs';
+import { loadSchematic } from '@enginehub/schematicjs';
+import type { SchematicHandles } from '.';
+import type { SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
-import { BlockModelData, POSSIBLE_FACES } from './model/types';
+import type { BlockModelData } from './model/types';
+import { POSSIBLE_FACES } from './model/types';
 import {
     faceToFacingVector,
     INVISIBLE_BLOCKS,

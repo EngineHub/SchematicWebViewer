@@ -1,6 +1,6 @@
 import deepmerge from 'deepmerge';
-import { ResourceLoader } from '../../resource/resourceLoader';
-import { BlockModel, BlockStateDefinition } from './types';
+import type { ResourceLoader } from '../../resource/resourceLoader';
+import type { BlockModel, BlockStateDefinition } from './types';
 
 export async function loadBlockStateDefinition(
     block: string,

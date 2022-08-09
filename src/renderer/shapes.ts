@@ -1,4 +1,5 @@
-import { Axis, Color3, MeshBuilder, Scene, StandardMaterial } from 'babylonjs';
+import type { Scene } from 'babylonjs';
+import { Axis, Color3, MeshBuilder, StandardMaterial } from 'babylonjs';
 
 export function addArrowToScene(scene: Scene, cameraOffset: number): void {
     const arrowMaterial = new StandardMaterial('arrow', scene);

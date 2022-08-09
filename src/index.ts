@@ -1,1 +1,1 @@
-export { renderSchematic, SchematicHandles } from './renderer';
+export { renderSchematic, type SchematicHandles } from './renderer';

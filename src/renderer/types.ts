@@ -1,4 +1,4 @@
-import { Engine } from 'babylonjs';
+import type { Engine } from 'babylonjs';
 
 export interface SchematicHandles {
     /**
