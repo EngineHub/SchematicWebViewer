@@ -51,6 +51,9 @@
     "browserslist": [
         "last 1 Chrome version"
     ],
+    "alias": {
+        "process": false
+    },
     "sideEffects": false,
     "packageManager": "yarn@3.2.4"
 }
