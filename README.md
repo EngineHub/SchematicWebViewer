@@ -19,7 +19,7 @@ renderSchematic(document.querySelector('#schematicRenderer'), SCHEMATIC_FILE, {
     size: 500,
     renderArrow: false,
     renderBars: false,
-    corsBypassUrl: 'https://url-to-cors-anywhere/'
+    corsBypassUrl: 'https://url-to-cors-anywhere/',
 });
 ```
 
@@ -33,14 +33,50 @@ The final argument is an options object that allows configuring various settings
 
 ```typescript
 interface SchematicRenderOptions {
-    size?: number; // Force the size of the canvas viewport, if not present use canvas size
-    corsBypassUrl: string; // A url of a cors-anywhere instance to allow access to MC server jars
-    resourcePacks?: string[]; // A list of resource pack URLs in priority order
-    renderBars?: boolean; // Whether a grid should be rendered
-    renderArrow?: boolean; // Whether an arrow to show direction should be rendered
-    orbit?: boolean; // Whether the view should automatically rotate when not being dragged by the user
-    antialias?: boolean; // Whether antialiasing should be enabled
-    backgroundColor?: number | 'transparent'; // Background color of the canvas (default: 0xffffff)
+    /**
+     * Usage as number is deprecated and will be removed
+     */
+    size?: number | { width: number; height: number };
+    /**
+     * A url of a cors-anywhere instance to allow access to MC server jars. Required by the default `getClientJarUrl` function
+     */
+    corsBypassUrl?: string;
+    /**
+     * A function that returns the url of the client jar to use. Defaults to using the EngineHub Cassette Deck service
+     */
+    getClientJarUrl?: (props: GetClientJarUrlProps) => Promise<string>;
+    /**
+     * A list of resource pack URLs in priority order
+     */
+    resourcePacks?: string[];
+    /**
+     * Whether a grid should be rendered
+     */
+    renderBars?: boolean;
+    /**
+     * Whether an arrow to show direction should be rendered
+     */
+    renderArrow?: boolean;
+    /**
+     * Whether the view should automatically rotate when not being dragged by the user
+     */
+    orbit?: boolean;
+    /**
+     * Whether antialiasing should be enabled
+     */
+    antialias?: boolean;
+    /**
+     * Background color of the canvas (default: 0xffffff), or if it should be transparent
+     */
+    backgroundColor?: number | 'transparent';
+    /**
+     * Whether to enable further debug information
+     */
+    debug?: boolean;
+    /**
+     * Only update the view when {@link SchematicHandles#render} is called. This is useful if you want to control the rendering yourself
+     */
+    disableAutoRender?: boolean;
 }
 ```
 

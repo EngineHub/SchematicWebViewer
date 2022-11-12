@@ -1,7 +1,7 @@
 import type { Block } from '@enginehub/schematicjs';
 import { loadSchematic } from '@enginehub/schematicjs';
 import type { SchematicHandles } from '.';
-import type { SchematicRenderOptions } from './types';
+import type { GetClientJarUrlProps, SchematicRenderOptions } from './types';
 import { getModelLoader } from './model/loader';
 import { getResourceLoader } from '../resource/resourceLoader';
 import type { BlockModelData } from './model/types';
@@ -29,11 +29,27 @@ const CASSETTE_DECK_URL = `https://services.enginehub.org/cassette-deck/minecraf
 const URL_1_13 =
     'https://launcher.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar';
 
+async function getClientJarUrlDefault({
+    dataVersion,
+    corsBypassUrl,
+}: GetClientJarUrlProps): Promise<string> {
+    const versionManifestFile = dataVersion
+        ? await (
+              await fetch(`${corsBypassUrl}${CASSETTE_DECK_URL}${dataVersion}`)
+          ).json()
+        : undefined;
+
+    return `${corsBypassUrl}${
+        versionManifestFile?.[0]?.clientJarUrl ?? URL_1_13
+    }`;
+}
+
 export async function renderSchematic(
     canvas: HTMLCanvasElement,
     schematic: string,
     {
         corsBypassUrl,
+        getClientJarUrl = getClientJarUrlDefault,
         resourcePacks,
         size,
         orbit = true,
@@ -111,16 +127,11 @@ export async function renderSchematic(
     const cameraOffset = Math.max(worldWidth, worldLength, worldHeight) / 2 + 1;
     camera.radius = cameraOffset * 3;
 
-    const versionManifestFile = loadedSchematic.dataVersion
-        ? await (
-              await fetch(
-                  `${corsBypassUrl}${CASSETTE_DECK_URL}${loadedSchematic.dataVersion}`
-              )
-          ).json()
-        : undefined;
-
     const resourceLoader = await getResourceLoader([
-        `${corsBypassUrl}${versionManifestFile?.[0]?.clientJarUrl ?? URL_1_13}`,
+        await getClientJarUrl({
+            dataVersion: loadedSchematic.dataVersion,
+            corsBypassUrl,
+        }),
         ...(resourcePacks ?? []),
     ]);
     const modelLoader = getModelLoader(resourceLoader);

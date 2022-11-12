@@ -30,18 +30,54 @@ export interface SchematicHandles {
     getEngine(): Engine;
 }
 
+export interface GetClientJarUrlProps {
+    dataVersion: number;
+    corsBypassUrl: string;
+}
+
 export interface SchematicRenderOptions {
     /**
-     * Usage as number is deprecated and will be removed.
+     * Usage as number is deprecated and will be removed
      */
     size?: number | { width: number; height: number };
-    corsBypassUrl: string;
+    /**
+     * A url of a cors-anywhere instance to allow access to MC server jars. Required by the default `getClientJarUrl` function
+     */
+    corsBypassUrl?: string;
+    /**
+     * A function that returns the url of the client jar to use. Defaults to using the EngineHub Cassette Deck service
+     */
+    getClientJarUrl?: (props: GetClientJarUrlProps) => Promise<string>;
+    /**
+     * A list of resource pack URLs in priority order
+     */
     resourcePacks?: string[];
+    /**
+     * Whether a grid should be rendered
+     */
     renderBars?: boolean;
+    /**
+     * Whether an arrow to show direction should be rendered
+     */
     renderArrow?: boolean;
+    /**
+     * Whether the view should automatically rotate when not being dragged by the user
+     */
     orbit?: boolean;
+    /**
+     * Whether antialiasing should be enabled
+     */
     antialias?: boolean;
+    /**
+     * Background color of the canvas (default: 0xffffff), or if it should be transparent
+     */
     backgroundColor?: number | 'transparent';
+    /**
+     * Whether to enable further debug information
+     */
     debug?: boolean;
+    /**
+     * Only update the view when {@link SchematicHandles#render} is called. This is useful if you want to control the rendering yourself
+     */
     disableAutoRender?: boolean;
 }
