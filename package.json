@@ -9,12 +9,13 @@
         "dist/"
     ],
     "scripts": {
-        "prepublish": "rm -rf dist && yarn build",
-        "build": "tsc && tsc --module commonjs --outDir dist/cjs",
+        "prepack": "yarn build",
+        "clean": "rm -rf dist",
+        "build": "yarn tsc && yarn tsc --module commonjs --outDir dist/cjs",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "parcel test/test.html --port 3000 --host 0.0.0.0",
-        "type-check": "tsc --noEmit",
-        "lint": "eslint --config ./.eslintrc.js --ext .js,.ts src/"
+        "start": "yarn parcel test/test.html --port 3000 --host 0.0.0.0",
+        "type-check": "yarn tsc --noEmit",
+        "lint": "yarn eslint --config ./.eslintrc.js --ext .js,.ts src/"
     },
     "repository": {
         "type": "git",
@@ -47,11 +48,9 @@
         "prettier-eslint": "^15.0.1",
         "typescript": "^4.8.4"
     },
-    "peerDependencies": {
-        "@enginehub/schematicjs": "^0.7.0"
-    },
     "browserslist": [
         "last 1 Chrome version"
     ],
-    "sideEffects": false
+    "sideEffects": false,
+    "packageManager": "yarn@3.2.4"
 }
