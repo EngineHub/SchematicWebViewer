@@ -1,5 +1,5 @@
 import type { Block } from '@enginehub/schematicjs';
-import type { Material, Mesh, Scene } from 'babylonjs';
+import type { InstancedMesh, Material, Mesh, Scene } from 'babylonjs';
 import {
     Axis,
     Color3,
@@ -13,7 +13,6 @@ import {
     Vector3,
     Vector4,
 } from 'babylonjs';
-import type { InstancedMesh } from 'babylonjs/Meshes/instancedMesh';
 import deepmerge from 'deepmerge';
 import type { ResourceLoader } from '../../resource/resourceLoader';
 import { TRANSPARENT_BLOCKS } from '../utils';

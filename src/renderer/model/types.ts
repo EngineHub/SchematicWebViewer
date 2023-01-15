@@ -37,7 +37,7 @@ export const POSSIBLE_FACES = [
     'up',
     'down',
 ] as const;
-export type Faces = typeof POSSIBLE_FACES[number] | 'bottom';
+export type Faces = (typeof POSSIBLE_FACES)[number] | 'bottom';
 
 export interface BlockModel {
     parent?: string;

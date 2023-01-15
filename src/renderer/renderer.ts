@@ -53,6 +53,7 @@ export async function renderSchematic(
         resourcePacks,
         size,
         orbit = true,
+        orbitSpeed = 0.02,
         renderArrow = false,
         renderBars = false,
         antialias = false,
@@ -234,7 +235,7 @@ export async function renderSchematic(
 
     if (orbit) {
         scene.registerBeforeRender(() => {
-            camera.alpha += 0.02;
+            camera.alpha += orbitSpeed;
         });
     }
 

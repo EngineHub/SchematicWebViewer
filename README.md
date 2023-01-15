@@ -62,6 +62,10 @@ interface SchematicRenderOptions {
      */
     orbit?: boolean;
     /**
+     * The speed at which the view should orbit (default: 0.02)
+     */
+    orbitSpeed?: number;
+    /**
      * Whether antialiasing should be enabled
      */
     antialias?: boolean;
