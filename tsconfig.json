@@ -3,16 +3,15 @@
     "compilerOptions": {
         "outDir": "dist/esm",
         "sourceMap": true,
-        "noImplicitAny": false,
         "esModuleInterop": true,
-        "downlevelIteration": true,
         "moduleResolution": "node",
         "resolveJsonModule": true,
         "module": "esnext",
-        "lib": ["es2017", "es7", "es6", "dom"],
+        "lib": ["esnext", "dom"],
         "target": "es6",
         "allowJs": true,
-        "declaration": true
+        "declaration": true,
+        "skipLibCheck": true
     },
     "exclude": ["node_modules", "dist"],
     "types": ["babylonjs"]
