@@ -343,7 +343,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                             number,
                             number,
                             number,
-                            number
+                            number,
                         ];
                         uvs.push(new Vector4(...faceData.uv));
                     }
@@ -361,6 +361,7 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
                         },
                         scene
                     );
+                    box.doNotSyncBoundingInfo = true;
 
                     const subMeshes = [];
                     const verticesCount = box.getTotalVertices();

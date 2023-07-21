@@ -21,6 +21,7 @@ import {
     Color3,
     Color4,
     Mesh,
+    ScenePerformancePriority,
 } from 'babylonjs';
 import { loadBlockStateDefinition } from './model/parser';
 import { addArrowToScene, addBarsToScene } from './shapes';
@@ -79,7 +80,11 @@ export async function renderSchematic(
 
     const scene = new Scene(engine, {
         useGeometryUniqueIdsMap: true,
+        useClonedMeshMap: true,
     });
+    scene.performancePriority = ScenePerformancePriority.Intermediate;
+    scene.renderingManager.maintainStateBetweenFrames = true;
+    scene.skipFrustumClipping = true;
 
     scene.ambientColor = new Color3(0.5, 0.5, 0.5);
     if (backgroundColor !== 'transparent') {
@@ -159,11 +164,12 @@ export async function renderSchematic(
 
     Mesh.INSTANCEDMESH_SORT_TRANSPARENT = true;
 
+    scene.blockMaterialDirtyMechanism = true;
     for (const pos of loadedSchematic) {
         const { x, y, z } = pos;
         const block = loadedSchematic.getBlock(pos);
 
-        if (!block) {
+        if (!block || INVISIBLE_BLOCKS.has(block.type)) {
             continue;
         }
 
@@ -208,6 +214,7 @@ export async function renderSchematic(
             scene.addMesh(mesh);
         }
     }
+    scene.blockMaterialDirtyMechanism = false;
 
     if (renderArrow) {
         addArrowToScene(scene, cameraOffset);
