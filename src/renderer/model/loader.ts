@@ -1,18 +1,4 @@
 import type { Block } from '@enginehub/schematicjs';
-import type { InstancedMesh, Material, Mesh, Scene } from 'babylonjs';
-import {
-    Axis,
-    Color3,
-    Color4,
-    MeshBuilder,
-    MultiMaterial,
-    Space,
-    StandardMaterial,
-    SubMesh,
-    Texture,
-    Vector3,
-    Vector4,
-} from 'babylonjs';
 import deepmerge from 'deepmerge';
 import type { ResourceLoader } from '../../resource/resourceLoader';
 import { TRANSPARENT_BLOCKS } from '../utils';
@@ -26,6 +12,23 @@ import type {
     Vector,
 } from './types';
 import { POSSIBLE_FACES } from './types';
+import {
+    Axis,
+    Color3,
+    Color4,
+    type InstancedMesh,
+    type Material,
+    type Mesh,
+    MeshBuilder,
+    MultiMaterial,
+    type Scene,
+    Space,
+    StandardMaterial,
+    SubMesh,
+    Texture,
+    Vector3,
+    Vector4,
+} from '@babylonjs/core';
 
 const TINT_COLOR = new Color4(145 / 255, 189 / 255, 89 / 255, 1);
 const WATER_COLOR = new Color4(36 / 255, 57 / 255, 214 / 255, 1);

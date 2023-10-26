@@ -12,19 +12,19 @@ import {
     NON_OCCLUDING_BLOCKS,
     parseNbt,
 } from './utils';
-import {
-    Engine,
-    Scene,
-    Vector3,
-    ArcRotateCamera,
-    HemisphericLight,
-    Color3,
-    Color4,
-    Mesh,
-    ScenePerformancePriority,
-} from 'babylonjs';
 import { loadBlockStateDefinition } from './model/parser';
 import { addArrowToScene, addBarsToScene } from './shapes';
+import {
+    ArcRotateCamera,
+    Color3,
+    Color4,
+    Engine,
+    HemisphericLight,
+    Mesh,
+    Scene,
+    ScenePerformancePriority,
+    Vector3,
+} from '@babylonjs/core';
 
 const CASSETTE_DECK_URL = `https://services.enginehub.org/cassette-deck/minecraft-versions/find?dataVersion=`;
 const URL_1_13 =

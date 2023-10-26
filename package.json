@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "4.7.0",
+    "version": "4.8.0",
     "description": "A web viewer for modern Minecraft schematics",
     "main": "dist/cjs/index.js",
     "module": "dist/esm/index.js",
@@ -8,6 +8,18 @@
     "files": [
         "dist/"
     ],
+    "exports": {
+        ".": {
+            "import": {
+                "default": "./dist/esm/index.js",
+                "types": "./dist/esm/index.d.ts"
+            },
+            "require": {
+                "default": "./dist/cjs/index.js",
+                "types": "./dist/cjs/index.d.ts"
+            }
+        }
+    },
     "scripts": {
         "prepack": "yarn build",
         "clean": "rm -rf dist",
@@ -28,8 +40,8 @@
     },
     "homepage": "https://github.com/EngineHub/SchematicWebViewer#readme",
     "dependencies": {
+        "@babylonjs/core": "^6.26.0",
         "@enginehub/schematicjs": "^0.9.1",
-        "babylonjs": "6.13.0",
         "buffer": "^6.0.3",
         "deepmerge": "^4.3.1",
         "gzip-js": "^0.3.2",
@@ -37,16 +49,16 @@
         "nbt-ts": "^1.3.5"
     },
     "devDependencies": {
-        "@types/gzip-js": "^0.3.3",
-        "@typescript-eslint/eslint-plugin": "^5.57.0",
-        "@typescript-eslint/parser": "^5.57.0",
-        "eslint": "^8.45.0",
-        "eslint-config-prettier": "^8.8.0",
-        "eslint-plugin-prettier": "^5.0.0",
-        "parcel": "^2.9.3",
-        "prettier": "^3.0.0",
-        "prettier-eslint": "^15.0.1",
-        "typescript": "^5.1.6"
+        "@types/gzip-js": "^0.3.4",
+        "@typescript-eslint/eslint-plugin": "^5.62.0",
+        "@typescript-eslint/parser": "^5.62.0",
+        "eslint": "^8.52.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-plugin-prettier": "^5.0.1",
+        "parcel": "^2.10.1",
+        "prettier": "^3.0.3",
+        "prettier-eslint": "^16.1.1",
+        "typescript": "^5.2.2"
     },
     "browserslist": [
         "last 1 Chrome version"
@@ -55,5 +67,5 @@
         "process": false
     },
     "sideEffects": false,
-    "packageManager": "yarn@3.6.1"
+    "packageManager": "yarn@4.0.0"
 }
