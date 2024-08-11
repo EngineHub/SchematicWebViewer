@@ -41,10 +41,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babylonjs/core@npm:^7.2.1":
-  version: 7.2.1
-  resolution: "@babylonjs/core@npm:7.2.1"
-  checksum: 10/f3c0dc0e305e20acff6e8d1598949482c0bd9d48de3b652125f581c1b7eac169d2bec509d7987b059e56d103432be5d45d8c3eeb2225f8c3e08e0cf2c24bebf6
+"@babylonjs/core@npm:^7.20.1":
+  version: 7.20.1
+  resolution: "@babylonjs/core@npm:7.20.1"
+  checksum: 10/d64377cdc3976cb763ea907025f6008ccec8e6fb6327dcebaea9723f72fe6241ff1a1ab604dfc15dd0512eaf181550f5686e1ed0b2d701ba974059b41c9ebce4
   languageName: node
   linkType: hard
 
@@ -68,7 +68,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@enginehub/schematicwebviewer@workspace:."
   dependencies:
-    "@babylonjs/core": "npm:^7.2.1"
+    "@babylonjs/core": "npm:^7.20.1"
     "@enginehub/nbt-ts": "npm:^1.3.5"
     "@enginehub/schematicjs": "npm:^0.9.2"
     "@types/gzip-js": "npm:^0.3.5"
