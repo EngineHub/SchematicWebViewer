@@ -1,17 +1,16 @@
 {
     "include": ["src/**/*"],
     "compilerOptions": {
-        "outDir": "dist/esm",
+        "outDir": "dist",
         "sourceMap": true,
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "module": "esnext",
         "lib": ["esnext", "dom"],
-        "target": "es6",
-        "allowJs": true,
+        "target": "esnext",
         "declaration": true,
-        "skipLibCheck": true
+        "isolatedModules": true
     },
     "exclude": ["node_modules", "dist"],
     "types": ["babylonjs"]
