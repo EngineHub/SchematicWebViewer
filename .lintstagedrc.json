@@ -1,0 +1,9 @@
+{
+    "*.{ts,mts,js,mjs}": [
+        "eslint --cache --fix",
+        "prettier --parser typescript --write --config ./.prettierrc"
+    ],
+    "*.html": ["prettier --parser html --write --config ./.prettierrc"],
+    "*.css": ["prettier --parser css --write --config ./.prettierrc"],
+    "*.json": ["prettier --parser json --write --config ./.prettierrc"]
+}
