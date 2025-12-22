@@ -5,24 +5,22 @@ import type { Faces, Vector } from './model/types';
 import NonOccludingBlocks from './nonOccluding.json';
 import TransparentBlocks from './transparent.json';
 
+const FACE_TO_FACING_VECTOR: Record<Faces, Vector> = {
+    up: [0, 1, 0],
+    down: [0, -1, 0],
+    bottom: [0, -1, 0],
+    north: [0, 0, -1],
+    south: [0, 0, 1],
+    east: [1, 0, 0],
+    west: [-1, 0, 0],
+};
+
 export function faceToFacingVector(face: Faces): Vector {
-    switch (face) {
-        case 'up':
-            return [0, 1, 0];
-        case 'down':
-        case 'bottom':
-            return [0, -1, 0];
-        case 'north':
-            return [0, 0, -1];
-        case 'south':
-            return [0, 0, 1];
-        case 'east':
-            return [1, 0, 0];
-        case 'west':
-            return [-1, 0, 0];
-        default:
-            throw new Error(`Unknown face: ${face}`);
+    const vec = FACE_TO_FACING_VECTOR[face];
+    if (!vec) {
+        throw new Error(`Unknown face: ${face}`);
     }
+    return vec;
 }
 
 export const INVISIBLE_BLOCKS = new Set([

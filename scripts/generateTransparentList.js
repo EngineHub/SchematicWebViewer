@@ -19,6 +19,10 @@ async function doTheFilter() {
     const transparent = data
         .filter(bl => bl.material.opaque === false || bl.id.includes('door'))
         .map(bl => bl.id.replace('minecraft:', ''));
+
+    // MC has renamed this to short_grass; it's common enough to special case for old schematics.
+    transparent.push('grass');
+
     await Promise.all([
         writeFile(
             new URL('../src/renderer/nonOccluding.json', import.meta.url),

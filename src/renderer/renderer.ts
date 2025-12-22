@@ -30,6 +30,26 @@ const CASSETTE_DECK_URL = `https://services.enginehub.org/cassette-deck/minecraf
 const URL_1_13 =
     'https://launcher.mojang.com/v1/objects/c0b970952cdd279912da384cdbfc0c26e6c6090b/client.jar';
 
+function blockKey(block: Block): string {
+    const props = block.properties ?? {};
+    const keys = Object.keys(props);
+    if (keys.length === 0) {
+        return block.type;
+    }
+
+    keys.sort();
+    let out = block.type + '[';
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (i > 0) {
+            out += ',';
+        }
+        out += key + '=' + String(props[key]);
+    }
+    out += ']';
+    return out;
+}
+
 async function getClientJarUrlDefault({
     dataVersion,
     corsBypassUrl,
@@ -88,9 +108,8 @@ export async function renderSchematic(
 
     scene.ambientColor = new Color3(0.5, 0.5, 0.5);
     if (backgroundColor !== 'transparent') {
-        scene.clearColor = Color4.FromHexString(
-            `#${backgroundColor.toString(16)}FF`
-        );
+        const hex = backgroundColor.toString(16).padStart(6, '0');
+        scene.clearColor = Color4.FromHexString(`#${hex}FF`);
     } else {
         scene.clearColor = new Color4(0, 0, 0, 0);
     }
@@ -142,7 +161,7 @@ export async function renderSchematic(
     ]);
     const modelLoader = getModelLoader(resourceLoader);
 
-    const blockModelLookup: Map<Block, BlockModelData> = new Map();
+    const blockModelLookup: Map<string, BlockModelData> = new Map();
 
     for (const block of loadedSchematic.blockTypes) {
         if (INVISIBLE_BLOCKS.has(block.type)) {
@@ -159,10 +178,16 @@ export async function renderSchematic(
             continue;
         }
 
-        blockModelLookup.set(block, blockModelData);
+        blockModelLookup.set(blockKey(block), blockModelData);
     }
 
     Mesh.INSTANCEDMESH_SORT_TRANSPARENT = true;
+
+    const worldXBase = -worldWidth / 2 + 0.5;
+    const worldYBase = -worldHeight / 2 + 0.5;
+    const worldZBase = -worldLength / 2 + 0.5;
+
+    const neighborPos = { x: 0, y: 0, z: 0 };
 
     scene.blockMaterialDirtyMechanism = true;
     for (const pos of loadedSchematic) {
@@ -173,7 +198,7 @@ export async function renderSchematic(
             continue;
         }
 
-        const modelData = blockModelLookup.get(block);
+        const modelData = blockModelLookup.get(blockKey(block));
         if (!modelData) {
             continue;
         }
@@ -182,11 +207,10 @@ export async function renderSchematic(
 
         for (const face of POSSIBLE_FACES) {
             const faceOffset = faceToFacingVector(face);
-            const offBlock = loadedSchematic.getBlock({
-                x: x + faceOffset[0],
-                y: y + faceOffset[1],
-                z: z + faceOffset[2],
-            });
+            neighborPos.x = x + faceOffset[0];
+            neighborPos.y = y + faceOffset[1];
+            neighborPos.z = z + faceOffset[2];
+            const offBlock = loadedSchematic.getBlock(neighborPos);
 
             if (!offBlock || NON_OCCLUDING_BLOCKS.has(offBlock.type)) {
                 anyVisible = true;
@@ -206,12 +230,10 @@ export async function renderSchematic(
                 continue;
             }
 
-            mesh.position.x += -worldWidth / 2 + x + 0.5;
-            mesh.position.y += -worldHeight / 2 + y + 0.5;
-            mesh.position.z += -worldLength / 2 + z + 0.5;
+            mesh.position.x += worldXBase + x;
+            mesh.position.y += worldYBase + y;
+            mesh.position.z += worldZBase + z;
             mesh.freezeWorldMatrix();
-
-            scene.addMesh(mesh);
         }
     }
     scene.blockMaterialDirtyMechanism = false;
@@ -254,8 +276,10 @@ export async function renderSchematic(
             engine.setSize(width, height);
         },
         destroy() {
-            engine.dispose();
             hasDestroyed = true;
+            engine.stopRenderLoop(render);
+            scene.dispose();
+            engine.dispose();
         },
         render,
         getEngine(): Engine {

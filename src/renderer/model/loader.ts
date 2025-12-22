@@ -208,21 +208,20 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
         const weightedRandomIndex = (
             options: BlockModelData['models'][number]['options']
         ) => {
-            const weights = [];
-
+            let totalWeight = 0;
             for (let i = 0; i < options.length; i++) {
-                weights[i] = options[i].weight + (weights[i - 1] || 0);
+                totalWeight += options[i].weight;
             }
 
-            const random = Math.random() * weights[weights.length - 1];
-
-            for (let i = 0; i < weights.length; i++) {
-                if (weights[i] > random) {
+            let random = Math.random() * totalWeight;
+            for (let i = 0; i < options.length; i++) {
+                random -= options[i].weight;
+                if (random < 0) {
                     return i;
                 }
             }
 
-            return weights.length - 1;
+            return options.length - 1;
         };
 
         let name = data.name;
@@ -242,9 +241,17 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
         scene: Scene
     ) => {
         if (modelCache.has(data.name)) {
-            return modelCache
-                .get(data.name)
-                .map((mesh, i) => mesh.createInstance(`${data.name}-${i}`));
+            const cachedGroup = modelCache.get(data.name);
+            const instances = new Array<InstancedMesh>(cachedGroup.length);
+            const instanceNamePrefix = `${data.name}-`;
+
+            for (let i = 0; i < cachedGroup.length; i++) {
+                instances[i] = cachedGroup[i].createInstance(
+                    instanceNamePrefix + i
+                );
+            }
+
+            return instances;
         }
 
         const group: Mesh[] = [];
@@ -490,7 +497,13 @@ export function getModelLoader(resourceLoader: ResourceLoader): ModelLoader {
             mesh.isVisible = false;
         }
         modelCache.set(data.name, group);
-        return group.map((mesh, i) => mesh.createInstance(`${data.name}-${i}`));
+
+        const instances = new Array<InstancedMesh>(group.length);
+        const instanceNamePrefix = `${data.name}-`;
+        for (let i = 0; i < group.length; i++) {
+            instances[i] = group[i].createInstance(instanceNamePrefix + i);
+        }
+        return instances;
     };
 
     return {
