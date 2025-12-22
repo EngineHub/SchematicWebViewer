@@ -1,6 +1,6 @@
 {
     "name": "@enginehub/schematicwebviewer",
-    "version": "5.0.0",
+    "version": "5.0.1",
     "description": "A web viewer for modern Minecraft schematics",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -17,7 +17,6 @@
         }
     },
     "scripts": {
-        "prepack": "yarn build",
         "clean": "rm -rf dist",
         "build": "yarn tsdown",
         "test": "echo \"Error: no test specified\" && exit 1",
@@ -25,7 +24,9 @@
         "type-check": "yarn tsc --noEmit",
         "lint": "yarn eslint src/",
         "postinstall": "yarn husky",
-        "precommit": "yarn lint-staged"
+        "precommit": "yarn lint-staged",
+        "prepack": "pinst --disable && yarn build",
+        "postpack": "pinst --enable"
     },
     "repository": {
         "type": "git",
@@ -54,6 +55,7 @@
         "husky": "^9.1.7",
         "lint-staged": "^16.2.7",
         "parcel": "^2.16.3",
+        "pinst": "^3.0.0",
         "prettier": "^3.7.4",
         "tsdown": "^0.18.2",
         "typescript": "^5.9.3",
